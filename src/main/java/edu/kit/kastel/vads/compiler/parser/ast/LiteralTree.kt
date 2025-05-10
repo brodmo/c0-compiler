@@ -4,7 +4,6 @@ import edu.kit.kastel.vads.compiler.Span
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 import java.util.*
 
-@JvmRecord
 data class LiteralTree(val value: String, val base: Int, override val span: Span) : ExpressionTree {
     override fun <T, R> accept(visitor: Visitor<T, R>, data: T): R {
         return visitor.visit(this, data)

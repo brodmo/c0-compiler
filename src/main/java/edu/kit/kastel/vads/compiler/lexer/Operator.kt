@@ -2,7 +2,6 @@ package edu.kit.kastel.vads.compiler.lexer
 
 import edu.kit.kastel.vads.compiler.Span
 
-@JvmRecord
 data class Operator(val type: OperatorType, override val span: Span) : Token {
     override fun isOperator(operatorType: OperatorType): Boolean {
         return this.type == operatorType

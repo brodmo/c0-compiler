@@ -129,7 +129,6 @@ class GraphVizPrinter(private val graph: IrGraph) {
         return node.toString()
     }
 
-    @JvmRecord
     internal data class Edge(val from: Node, val to: Node, val idx: Int)
     companion object {
         fun print(graph: IrGraph): String {
