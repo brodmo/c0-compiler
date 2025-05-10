@@ -8,10 +8,10 @@ import java.util.Map
 
 class AasmRegisterAllocator : RegisterAllocator {
     private var id = 0
-    private val registers: MutableMap<Node, Register> = HashMap<Node, Register>()
+    private val registers: MutableMap<Node, Register> = mutableMapOf()
 
     override fun allocateRegisters(graph: IrGraph): MutableMap<Node, Register> {
-        val visited: MutableSet<Node> = HashSet<Node>()
+        val visited: MutableSet<Node> = mutableSetOf()
         visited.add(graph.endBlock())
         scan(graph.endBlock(), visited)
         return Map.copyOf<Node, Register>(this.registers)

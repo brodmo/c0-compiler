@@ -4,21 +4,18 @@ import edu.kit.kastel.vads.compiler.ir.node.*
 import edu.kit.kastel.vads.compiler.ir.node.ProjNode.SimpleProjectionInfo
 import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
-import java.util.Map
 import java.util.function.Function
 
 internal class GraphConstructor(private val optimizer: Optimizer, name: String) {
-    private val graph: IrGraph
-    private val currentDef: MutableMap<Name, MutableMap<Block, Node>> = HashMap<Name, MutableMap<Block, Node>>()
-    private val incompletePhis: MutableMap<Block, MutableMap<Name, Phi>> = HashMap<Block, MutableMap<Name, Phi>>()
-    private val currentSideEffect: MutableMap<Block, Node> = HashMap<Block, Node>()
-    private val incompleteSideEffectPhis: MutableMap<Block, Phi> = HashMap<Block, Phi>()
-    private val sealedBlocks: MutableSet<Block> = HashSet<Block>()
-    private val currentBlock: Block
+    private val graph: IrGraph = IrGraph(name)
+    private val currentDef: MutableMap<Name, MutableMap<Block, Node>> = mutableMapOf()
+    private val incompletePhis: MutableMap<Block, MutableMap<Name, Phi>> = mutableMapOf()
+    private val currentSideEffect: MutableMap<Block, Node> = mutableMapOf()
+    private val incompleteSideEffectPhis: MutableMap<Block, Phi> = mutableMapOf()
+    private val sealedBlocks: MutableSet<Block> = mutableSetOf()
+    private val currentBlock: Block = this.graph.startBlock()
 
     init {
-        this.graph = IrGraph(name)
-        this.currentBlock = this.graph.startBlock()
         // the start block never gets any more predecessors
         sealBlock(this.currentBlock)
     }
@@ -80,11 +77,11 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun writeVariable(variable: Name, block: Block, value: Node) {
-        this.currentDef.computeIfAbsent(variable, Function { `_`: Name -> HashMap() }).put(block, value)
+        this.currentDef.computeIfAbsent(variable, Function { `_`: Name -> mutableMapOf() }).put(block, value)
     }
 
     fun readVariable(variable: Name, block: Block): Node {
-        val node = this.currentDef.getOrDefault(variable, Map.of<Block, Node>()).get(block)
+        val node = this.currentDef.getOrDefault(variable, mutableMapOf())[block]
         if (node != null) {
             return node
         }
@@ -96,7 +93,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
         var `val`: Node
         if (!this.sealedBlocks.contains(block)) {
             `val` = newPhi()
-            this.incompletePhis.computeIfAbsent(block, Function { `_`: Block -> HashMap() })
+            this.incompletePhis.computeIfAbsent(block, Function { `_`: Block -> mutableMapOf() })
                 .put(variable, `val`)
         } else if (block.predecessors().size == 1) {
             `val` = readVariable(variable, block.predecessors().first().block())
@@ -125,7 +122,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun sealBlock(block: Block) {
-        for (entry in this.incompletePhis.getOrDefault(block, Map.of<Name, Phi>()).entries) {
+        for (entry in this.incompletePhis.getOrDefault(block, mutableMapOf()).entries) {
             addPhiOperands(entry.key, entry.value)
         }
         this.sealedBlocks.add(block)
@@ -144,7 +141,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     private fun readSideEffect(block: Block): Node {
-        val node = this.currentSideEffect.get(block)
+        val node = this.currentSideEffect[block]
         if (node != null) {
             return node
         }

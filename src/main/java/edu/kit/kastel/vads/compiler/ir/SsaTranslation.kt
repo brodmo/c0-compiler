@@ -22,11 +22,7 @@ import java.util.function.BinaryOperator
  *
  * We recommend to read the paper to better understand the mechanics implemented here. */
 class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
-    private val constructor: GraphConstructor
-
-    init {
-        this.constructor = GraphConstructor(optimizer, function.name.name.asString())
-    }
+    private val constructor: GraphConstructor = GraphConstructor(optimizer, function.name.name.asString())
 
     fun translate(): IrGraph {
         val visitor = SsaTranslationVisitor()

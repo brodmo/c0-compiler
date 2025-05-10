@@ -7,14 +7,9 @@ import java.util.Set
 import java.util.function.Function
 
 class IrGraph(private val name: String) {
-    private val successors: MutableMap<Node, SequencedSet<Node>> = IdentityHashMap<Node, SequencedSet<Node>>()
-    private val startBlock: Block
-    private val endBlock: Block
-
-    init {
-        this.startBlock = Block(this)
-        this.endBlock = Block(this)
-    }
+    private val successors: MutableMap<Node, SequencedSet<Node>> = mutableMapOf()
+    private val startBlock: Block = Block(this)
+    private val endBlock: Block = Block(this)
 
     fun registerSuccessor(node: Node, successor: Node) {
         this.successors.computeIfAbsent(node, Function { `_`: Node -> LinkedHashSet() }).add(successor)
@@ -26,9 +21,9 @@ class IrGraph(private val name: String) {
 
     /** {@return the set of nodes that have the given node as one of their inputs} */
     fun successors(node: Node): MutableSet<Node> {
-        val successors = this.successors.get(node)
+        val successors = this.successors[node]
         if (successors == null) {
-            return Set.of<Node>()
+            return mutableSetOf<Node>()
         }
         return Set.copyOf<Node>(successors)
     }

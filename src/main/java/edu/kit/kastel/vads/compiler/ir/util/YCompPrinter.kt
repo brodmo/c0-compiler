@@ -7,8 +7,8 @@ import java.util.*
 
 class YCompPrinter(private val graph: IrGraph) {
 
-    private val clusters: MutableMap<Block, MutableSet<Node>> = HashMap()
-    private val ids: MutableMap<Node, Int> = HashMap()
+    private val clusters: MutableMap<Block, MutableSet<Node>> = mutableMapOf()
+    private val ids: MutableMap<Node, Int> = mutableMapOf()
     private var nodeCounter = 0
     private var blockCounter = 0
 
@@ -19,7 +19,7 @@ class YCompPrinter(private val graph: IrGraph) {
 
         if (node !is Block) {
             clusters.computeIfAbsent(node.block()) {
-                Collections.newSetFromMap(IdentityHashMap())
+                Collections.newSetFromMap(mutableMapOf())
             }.add(node)
         }
 
@@ -268,7 +268,7 @@ class YCompPrinter(private val graph: IrGraph) {
     companion object {
         fun print(graph: IrGraph): String {
             val printer = YCompPrinter(graph)
-            printer.prepare(graph.endBlock(), HashSet())
+            printer.prepare(graph.endBlock(), mutableSetOf())
             return printer.dumpGraphAsString()
         }
     }

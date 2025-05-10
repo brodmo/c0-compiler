@@ -4,15 +4,14 @@ import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.node.Block
 import edu.kit.kastel.vads.compiler.ir.node.Node
 import java.util.*
-import java.util.Set
 import java.util.function.BiConsumer
 import java.util.function.Function
 
 /** Outputs a DOT format string to visualize an [IrGraph]. */
 class GraphVizPrinter(private val graph: IrGraph) {
-    private val clusters: MutableMap<Block, MutableSet<Node>> = HashMap<Block, MutableSet<Node>>()
+    private val clusters: MutableMap<Block, MutableSet<Node>> = mutableMapOf()
     private val edges: MutableList<Edge> = ArrayList<Edge>()
-    private val ids: MutableMap<Node, Int> = HashMap<Node, Int>()
+    private val ids: MutableMap<Node, Int> = mutableMapOf()
     private val builder = StringBuilder()
     private var counter = 0
 
@@ -24,7 +23,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
         if (node !is Block) {
             this.clusters.computeIfAbsent(node.block(), Function { `_`: Block ->
                 Collections.newSetFromMap<Node>(
-                    IdentityHashMap<Node, Boolean>()
+                    mutableMapOf()
                 )
             })
                 .add(node)
@@ -35,7 +34,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
             prepare(predecessor, seen)
         }
         if (node === this.graph.endBlock()) {
-            this.clusters.put(this.graph.endBlock(), Set.of<Node>())
+            this.clusters.put(this.graph.endBlock(), mutableSetOf())
         }
     }
 
@@ -133,7 +132,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
     companion object {
         fun print(graph: IrGraph): String {
             val printer = GraphVizPrinter(graph)
-            printer.prepare(graph.endBlock(), HashSet<Node>())
+            printer.prepare(graph.endBlock(), mutableSetOf())
             printer.print()
             return printer.builder.toString()
         }

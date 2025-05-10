@@ -4,7 +4,6 @@ import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo.NoInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
-import java.util.List
 
 /** The base class for all nodes. */
 abstract class Node {
@@ -16,7 +15,7 @@ abstract class Node {
     protected constructor(block: Block, vararg predecessors: Node) {
         this.graph = block.graph()
         this.block = block
-        this.predecessors.addAll(List.of<Node>(*predecessors))
+        this.predecessors.addAll(predecessors)
         for (predecessor in predecessors) {
             graph.registerSuccessor(predecessor, this)
         }
@@ -39,12 +38,12 @@ abstract class Node {
     }
 
     fun predecessors(): MutableList<out Node> {
-        return List.copyOf<Node>(this.predecessors)
+        return this.predecessors.toMutableList()
     }
 
     fun setPredecessor(idx: Int, node: Node) {
-        this.graph.removeSuccessor(this.predecessors.get(idx), this)
-        this.predecessors.set(idx, node)
+        this.graph.removeSuccessor(this.predecessors[idx], this)
+        this.predecessors[idx] = node
         this.graph.registerSuccessor(node, this)
     }
 
@@ -54,7 +53,7 @@ abstract class Node {
     }
 
     fun predecessor(idx: Int): Node {
-        return this.predecessors.get(idx)
+        return this.predecessors[idx]
     }
 
     override fun toString(): String {

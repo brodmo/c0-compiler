@@ -21,7 +21,7 @@ class CodeGenerator {
     }
 
     private fun generateForGraph(graph: IrGraph, builder: StringBuilder, registers: MutableMap<Node, Register>) {
-        val visited: MutableSet<Node> = HashSet<Node>()
+        val visited: MutableSet<Node> = mutableSetOf()
         scan(graph.endBlock(), visited, builder, registers)
     }
 
@@ -67,13 +67,13 @@ class CodeGenerator {
             node: BinaryOperationNode,
             opcode: String
         ) {
-            builder.repeat(" ", 2).append(registers.get(node))
+            builder.repeat(" ", 2).append(registers[node])
                 .append(" = ")
                 .append(opcode)
                 .append(" ")
-                .append(registers.get(NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.LEFT)))
+                .append(registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.LEFT)])
                 .append(" ")
-                .append(registers.get(NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.RIGHT)))
+                .append(registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.RIGHT)])
         }
     }
 }

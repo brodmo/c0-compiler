@@ -9,7 +9,7 @@ import java.util.function.Function
  * When using classes like [HashMap] or [java.util.HashSet] without this optimization,
  * the [Node#equals(java.lang.Object)] and  [Node#hashCode()] methods must be adjusted. */
 class LocalValueNumbering : Optimizer {
-    private val knownNodes: MutableMap<Node, Node> = HashMap<Node, Node>()
+    private val knownNodes: MutableMap<Node, Node> = mutableMapOf()
 
     override fun transform(node: Node): Node {
         return this.knownNodes.computeIfAbsent(node, Function { n: Node -> n })
