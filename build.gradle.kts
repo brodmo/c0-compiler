@@ -1,14 +1,12 @@
 plugins {
-    id("java")
-    application
     kotlin("jvm")
+    application
 }
 
 group = "edu.kit.kastel.logic"
 version = "1.0-SNAPSHOT"
 
 application {
-    mainModule = "edu.kit.kastel.vads.compiler"
     mainClass = "edu.kit.kastel.vads.compiler.Main"
 }
 
@@ -26,6 +24,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(21)
 }
