@@ -1,6 +1,7 @@
 plugins {
     id("java")
     application
+    kotlin("jvm")
 }
 
 group = "edu.kit.kastel.logic"
@@ -19,12 +20,12 @@ dependencies {
     implementation("org.jspecify:jspecify:1.0.0")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-}
-
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(24)
+    implementation(kotlin("stdlib"))
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+kotlin {
+    jvmToolchain(21)
 }
