@@ -2,8 +2,6 @@ package edu.kit.kastel.vads.compiler.ir.optimize
 
 import edu.kit.kastel.vads.compiler.ir.node.Node
 import java.util.function.Function
-import kotlin.collections.HashMap
-import kotlin.collections.MutableMap
 
 /** This depends on [Node#equals(java.lang.Object)] and  [Node#hashCode()] methods.
  * As long as they take the block into account, it is only local, but replacement

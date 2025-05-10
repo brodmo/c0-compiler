@@ -1,18 +1,12 @@
 package edu.kit.kastel.vads.compiler.parser
 
-import edu.kit.kastel.vads.compiler.lexer.Identifier
-import edu.kit.kastel.vads.compiler.lexer.Keyword
-import edu.kit.kastel.vads.compiler.lexer.KeywordType
-import edu.kit.kastel.vads.compiler.lexer.Lexer
-import edu.kit.kastel.vads.compiler.lexer.Operator
-import edu.kit.kastel.vads.compiler.lexer.Separator
-import edu.kit.kastel.vads.compiler.lexer.Token
+import edu.kit.kastel.vads.compiler.lexer.*
 
 class TokenSource {
     private val tokens: List<Token>
     private var idx: Int = 0
 
-   constructor(lexer: Lexer) {
+    constructor(lexer: Lexer) {
         this.tokens = generateSequence { lexer.nextToken() }.toList()
     }
 

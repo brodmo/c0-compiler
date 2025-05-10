@@ -2,24 +2,8 @@ package edu.kit.kastel.vads.compiler.backend.aasm
 
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register
 import edu.kit.kastel.vads.compiler.ir.IrGraph
-import edu.kit.kastel.vads.compiler.ir.node.AddNode
-import edu.kit.kastel.vads.compiler.ir.node.BinaryOperationNode
-import edu.kit.kastel.vads.compiler.ir.node.Block
-import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode
-import edu.kit.kastel.vads.compiler.ir.node.DivNode
-import edu.kit.kastel.vads.compiler.ir.node.ModNode
-import edu.kit.kastel.vads.compiler.ir.node.MulNode
-import edu.kit.kastel.vads.compiler.ir.node.Node
-import edu.kit.kastel.vads.compiler.ir.node.Phi
-import edu.kit.kastel.vads.compiler.ir.node.ProjNode
-import edu.kit.kastel.vads.compiler.ir.node.ReturnNode
-import edu.kit.kastel.vads.compiler.ir.node.StartNode
-import edu.kit.kastel.vads.compiler.ir.node.SubNode
+import edu.kit.kastel.vads.compiler.ir.node.*
 import edu.kit.kastel.vads.compiler.ir.util.NodeSupport
-import kotlin.collections.HashSet
-import kotlin.collections.MutableList
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
 
 class CodeGenerator {
     fun generateCode(program: MutableList<IrGraph>): String {
@@ -62,13 +46,13 @@ class CodeGenerator {
             is ReturnNode -> builder.repeat(" ", 2).append("ret ")
                 .append(registers[NodeSupport.predecessorSkipProj(node, ReturnNode.Companion.RESULT)])
 
-            is ConstIntNode-> builder.repeat(" ", 2)
+            is ConstIntNode -> builder.repeat(" ", 2)
                 .append(registers[node])
                 .append(" = const ")
                 .append(node.value())
 
             is Phi -> throw UnsupportedOperationException("phi")
-                is Block, is ProjNode, is StartNode -> {
+            is Block, is ProjNode, is StartNode -> {
                 // do nothing, skip line break
                 return
             }

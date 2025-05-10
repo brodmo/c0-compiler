@@ -3,10 +3,6 @@ package edu.kit.kastel.vads.compiler.parser.ast
 import edu.kit.kastel.vads.compiler.Span
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 import java.util.*
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.NumberFormatException
-import kotlin.String
 
 @JvmRecord
 data class LiteralTree(val value: String, val base: Int, override val span: Span) : ExpressionTree {

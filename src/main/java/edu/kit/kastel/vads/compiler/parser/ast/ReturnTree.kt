@@ -1,7 +1,6 @@
 package edu.kit.kastel.vads.compiler.parser.ast
 
 import edu.kit.kastel.vads.compiler.Position
-import edu.kit.kastel.vads.compiler.Span
 import edu.kit.kastel.vads.compiler.Span.SimpleSpan
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 

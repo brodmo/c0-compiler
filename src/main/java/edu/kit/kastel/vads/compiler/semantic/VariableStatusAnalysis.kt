@@ -1,14 +1,10 @@
 package edu.kit.kastel.vads.compiler.semantic
 
 import edu.kit.kastel.vads.compiler.lexer.Operator
-import edu.kit.kastel.vads.compiler.parser.ast.AssignmentTree
-import edu.kit.kastel.vads.compiler.parser.ast.DeclarationTree
-import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree
-import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree
-import edu.kit.kastel.vads.compiler.parser.ast.NameTree
+import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.visitor.NoOpVisitor
 import edu.kit.kastel.vads.compiler.parser.visitor.Unit
-import java.util.Locale
+import java.util.*
 
 /**
  * Checks that variables are
@@ -28,6 +24,7 @@ class VariableStatusAnalysis : NoOpVisitor<Namespace<VariableStatusAnalysis.Vari
                     Operator.OperatorType.ASSIGN -> {
                         checkDeclared(name, status)
                     }
+
                     else -> {
                         checkInitialized(name, status)
                     }

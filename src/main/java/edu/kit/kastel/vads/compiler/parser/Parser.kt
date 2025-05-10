@@ -1,31 +1,9 @@
 package edu.kit.kastel.vads.compiler.parser
 
-import edu.kit.kastel.vads.compiler.lexer.Identifier
-import edu.kit.kastel.vads.compiler.lexer.Keyword
-import edu.kit.kastel.vads.compiler.lexer.KeywordType
-import edu.kit.kastel.vads.compiler.lexer.NumberLiteral
-import edu.kit.kastel.vads.compiler.lexer.Operator
+import edu.kit.kastel.vads.compiler.lexer.*
 import edu.kit.kastel.vads.compiler.lexer.Operator.OperatorType
-import edu.kit.kastel.vads.compiler.lexer.Separator
 import edu.kit.kastel.vads.compiler.lexer.Separator.SeparatorType
-import edu.kit.kastel.vads.compiler.Span
-import edu.kit.kastel.vads.compiler.lexer.Token
-import edu.kit.kastel.vads.compiler.parser.ast.AssignmentTree
-import edu.kit.kastel.vads.compiler.parser.ast.BinaryOperationTree
-import edu.kit.kastel.vads.compiler.parser.ast.BlockTree
-import edu.kit.kastel.vads.compiler.parser.ast.DeclarationTree
-import edu.kit.kastel.vads.compiler.parser.ast.ExpressionTree
-import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree
-import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree
-import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree
-import edu.kit.kastel.vads.compiler.parser.ast.LValueTree
-import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree
-import edu.kit.kastel.vads.compiler.parser.ast.NameTree
-import edu.kit.kastel.vads.compiler.parser.ast.NegateTree
-import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree
-import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree
-import edu.kit.kastel.vads.compiler.parser.ast.StatementTree
-import edu.kit.kastel.vads.compiler.parser.ast.TypeTree
+import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import edu.kit.kastel.vads.compiler.parser.type.BasicType
 
@@ -94,15 +72,16 @@ class Parser(private val tokenSource: TokenSource) {
         val peek = tokenSource.peek()
         if (peek is Operator) {
             return when (peek.type) {
-                OperatorType.ASSIGN, 
-                OperatorType.ASSIGN_DIV, 
-                OperatorType.ASSIGN_MINUS, 
-                OperatorType.ASSIGN_MOD, 
-                OperatorType.ASSIGN_MUL, 
+                OperatorType.ASSIGN,
+                OperatorType.ASSIGN_DIV,
+                OperatorType.ASSIGN_MINUS,
+                OperatorType.ASSIGN_MOD,
+                OperatorType.ASSIGN_MUL,
                 OperatorType.ASSIGN_PLUS -> {
                     tokenSource.consume()
                     peek
                 }
+
                 else -> throw ParseException("expected assignment but got ${peek.type}")
             }
         }
@@ -161,23 +140,29 @@ class Parser(private val tokenSource: TokenSource) {
                     tokenSource.expectSeparator(SeparatorType.PAREN_CLOSE)
                     expression
                 }
+
                 else -> throw ParseException("invalid factor $peek")
             }
+
             is Operator -> when (peek.type) {
                 OperatorType.MINUS -> {
                     val span = tokenSource.consume().span
                     NegateTree(parseFactor(), span)
                 }
+
                 else -> throw ParseException("invalid factor $peek")
             }
+
             is Identifier -> {
                 tokenSource.consume()
                 IdentExpressionTree(name(peek))
             }
+
             is NumberLiteral -> {
                 tokenSource.consume()
                 LiteralTree(peek.value, peek.base, peek.span)
             }
+
             else -> throw ParseException("invalid factor $peek")
         }
     }

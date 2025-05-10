@@ -15,8 +15,6 @@ import edu.kit.kastel.vads.compiler.semantic.SemanticException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.collections.ArrayList
-import kotlin.collections.MutableList
 
 object Main {
     @Throws(IOException::class)

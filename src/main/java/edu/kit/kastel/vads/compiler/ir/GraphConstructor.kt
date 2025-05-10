@@ -6,10 +6,6 @@ import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import java.util.Map
 import java.util.function.Function
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
 
 internal class GraphConstructor(private val optimizer: Optimizer, name: String) {
     private val graph: IrGraph

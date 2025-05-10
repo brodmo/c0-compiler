@@ -1,20 +1,6 @@
 package edu.kit.kastel.vads.compiler.parser
 
-import edu.kit.kastel.vads.compiler.parser.ast.AssignmentTree
-import edu.kit.kastel.vads.compiler.parser.ast.BinaryOperationTree
-import edu.kit.kastel.vads.compiler.parser.ast.BlockTree
-import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree
-import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree
-import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree
-import edu.kit.kastel.vads.compiler.parser.ast.NameTree
-import edu.kit.kastel.vads.compiler.parser.ast.NegateTree
-import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree
-import edu.kit.kastel.vads.compiler.parser.ast.Tree
-import edu.kit.kastel.vads.compiler.parser.ast.DeclarationTree
-import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree
-import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree
-import edu.kit.kastel.vads.compiler.parser.ast.StatementTree
-import edu.kit.kastel.vads.compiler.parser.ast.TypeTree
+import edu.kit.kastel.vads.compiler.parser.ast.*
 
 /// This is a utility class to help with debugging the parser.
 class Printer(private val ast: Tree) {
@@ -46,6 +32,7 @@ class Printer(private val ast: Tree) {
                 this.indentDepth--
                 print("}")
             }
+
             is FunctionTree -> {
                 printTree(tree.returnType)
                 space()
@@ -54,6 +41,7 @@ class Printer(private val ast: Tree) {
                 space()
                 printTree(tree.body)
             }
+
             is NameTree -> print(tree.name.asString())
             is ProgramTree -> {
                 for (function in tree.topLevelTrees) {
@@ -61,6 +49,7 @@ class Printer(private val ast: Tree) {
                     lineBreak()
                 }
             }
+
             is TypeTree -> print(tree.type.asString())
             is BinaryOperationTree -> {
                 print("(")
@@ -73,12 +62,14 @@ class Printer(private val ast: Tree) {
                 printTree(tree.rhs)
                 print(")")
             }
+
             is LiteralTree -> this.builder.append(tree.value)
             is NegateTree -> {
                 print("-(")
                 printTree(tree.expression)
                 print(")")
             }
+
             is AssignmentTree -> {
                 printTree(tree.lValue)
                 space()
@@ -87,6 +78,7 @@ class Printer(private val ast: Tree) {
                 printTree(tree.expression)
                 semicolon()
             }
+
             is DeclarationTree -> {
                 printTree(tree.type)
                 space()
@@ -97,11 +89,13 @@ class Printer(private val ast: Tree) {
                 }
                 semicolon()
             }
+
             is ReturnTree -> {
                 print("return ")
                 printTree(tree.expression)
                 semicolon()
             }
+
             is LValueIdentTree -> printTree(tree.name)
             is IdentExpressionTree -> printTree(tree.name)
         }

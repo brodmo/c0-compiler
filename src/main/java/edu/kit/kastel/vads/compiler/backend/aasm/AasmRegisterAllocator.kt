@@ -5,10 +5,6 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAllocator
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.node.*
 import java.util.Map
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
 
 class AasmRegisterAllocator : RegisterAllocator {
     private var id = 0

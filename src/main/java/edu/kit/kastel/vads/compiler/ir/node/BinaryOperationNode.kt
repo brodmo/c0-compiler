@@ -20,7 +20,7 @@ abstract class BinaryOperationNode : Node {
     }
 
     override fun hashCode(): Int {
-        return (Node.Companion.predecessorHash(this, LEFT) * 31 + Node.Companion.predecessorHash(
+        return (predecessorHash(this, LEFT) * 31 + predecessorHash(
             this,
             RIGHT
         )) xor this.javaClass.hashCode()
@@ -34,7 +34,7 @@ abstract class BinaryOperationNode : Node {
         protected fun commutativeHashCode(node: BinaryOperationNode): Int {
             var h = node.block().hashCode()
             // commutative operation: we want h(op(x, y)) == h(op(y, x))
-            h += 31 * (Node.Companion.predecessorHash(node, LEFT) xor Node.Companion.predecessorHash(node, RIGHT))
+            h += 31 * (predecessorHash(node, LEFT) xor predecessorHash(node, RIGHT))
             return h
         }
 

@@ -75,6 +75,7 @@ class Lexer private constructor(private val source: String) {
                         currentCommentType = null
                     }
                 }
+
                 '/' -> {
                     if (currentCommentType == CommentType.SINGLE_LINE) {
                         pos++
@@ -103,6 +104,7 @@ class Lexer private constructor(private val source: String) {
                     }
                     return null
                 }
+
                 else -> {
                     if (currentCommentType == CommentType.MULTI_LINE) {
                         if (peek() == '*' && hasMore(1) && peek(1) == '/') {

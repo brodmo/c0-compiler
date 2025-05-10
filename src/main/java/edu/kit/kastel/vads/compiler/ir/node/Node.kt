@@ -5,8 +5,6 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo.NoInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 import java.util.List
-import kotlin.collections.ArrayList
-import kotlin.collections.MutableList
 
 /** The base class for all nodes. */
 abstract class Node {

@@ -7,8 +7,6 @@ import java.util.*
 import java.util.Set
 import java.util.function.BiConsumer
 import java.util.function.Function
-import kotlin.Boolean
-import kotlin.Int
 
 /** Outputs a DOT format string to visualize an [IrGraph]. */
 class GraphVizPrinter(private val graph: IrGraph) {

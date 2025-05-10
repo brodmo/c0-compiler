@@ -39,13 +39,15 @@ class YCompPrinter(private val graph: IrGraph) {
         val graphName = graph.name()
         result.append("\n  title: ").append('"').append(graphName).append('"').append("\n")
 
-        result.append("""
+        result.append(
+            """
             display_edge_labels: yes
             layoutalgorithm: mindepth //$ "Compilergraph"
             manhattan_edges: yes
             port_sharing: no
             orientation: top_to_bottom
-            """.trimMargin().replaceIndent("  "))
+            """.trimMargin().replaceIndent("  ")
+        )
 
         for (color in VcgColor.values()) {
             result.append("\n  colorentry ").append(color.id()).append(": ").append(color.rgb)
@@ -197,6 +199,7 @@ class YCompPrinter(private val graph: IrGraph) {
                     VcgColor.NORMAL
                 }
             }
+
             is ReturnNode -> VcgColor.CONTROL_FLOW
             is StartNode -> VcgColor.CONTROL_FLOW
             else -> VcgColor.NORMAL
