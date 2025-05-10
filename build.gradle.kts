@@ -7,7 +7,7 @@ group = "edu.kit.kastel.logic"
 version = "1.0-SNAPSHOT"
 
 application {
-    mainClass = "edu.kit.kastel.vads.compiler.Main"
+    mainClass = "edu.kit.kastel.vads.compiler.MainKt"
 }
 
 repositories {

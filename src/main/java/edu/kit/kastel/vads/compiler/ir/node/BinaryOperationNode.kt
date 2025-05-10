@@ -30,16 +30,14 @@ abstract class BinaryOperationNode : Node {
         const val LEFT: Int = 0
         const val RIGHT: Int = 1
 
-        @JvmStatic
-        protected fun commutativeHashCode(node: BinaryOperationNode): Int {
+        internal fun commutativeHashCode(node: BinaryOperationNode): Int {
             var h = node.block().hashCode()
             // commutative operation: we want h(op(x, y)) == h(op(y, x))
             h += 31 * (predecessorHash(node, LEFT) xor predecessorHash(node, RIGHT))
             return h
         }
 
-        @JvmStatic
-        protected fun commutativeEquals(a: BinaryOperationNode, bObj: Any?): Boolean {
+        internal fun commutativeEquals(a: BinaryOperationNode, bObj: Any?): Boolean {
             if (bObj !is BinaryOperationNode) {
                 return false
             }

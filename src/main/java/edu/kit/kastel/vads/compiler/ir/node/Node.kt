@@ -70,8 +70,7 @@ abstract class Node {
     }
 
     companion object {
-        @JvmStatic
-        protected fun predecessorHash(node: Node, predecessor: Int): Int {
+        internal fun predecessorHash(node: Node, predecessor: Int): Int {
             return System.identityHashCode(node.predecessor(predecessor))
         }
     }

@@ -16,62 +16,59 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
-object Main {
-    @Throws(IOException::class)
-    @JvmStatic
-    fun main(args: Array<String>) {
-        if (args.size != 2) {
-            System.err.println("Invalid arguments: Expected one input file and one output file")
-            System.exit(3)
-        }
-        val input = Path.of(args[0])
-        val output = Path.of(args[1])
-        val program = lexAndParse(input)
-        try {
-            SemanticAnalysis(program).analyze()
-        } catch (e: SemanticException) {
-            e.printStackTrace()
-            System.exit(7)
-            return
-        }
-        val graphs: MutableList<IrGraph> = ArrayList<IrGraph>()
-        for (function in program.topLevelTrees) {
-            val translation = SsaTranslation(function, LocalValueNumbering())
-            graphs.add(translation.translate())
-        }
-
-        if ("vcg" == System.getenv("DUMP_GRAPHS") || "vcg" == System.getProperty("dumpGraphs")) {
-            val tmp = output.toAbsolutePath().resolveSibling("graphs")
-            Files.createDirectory(tmp)
-            for (graph in graphs) {
-                dumpGraph(graph, tmp, "before-codegen")
-            }
-        }
-
-        // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-        val s = CodeGenerator().generateCode(graphs)
-        Files.writeString(output, s)
+@Throws(IOException::class)
+fun main(args: Array<String>) {
+    if (args.size != 2) {
+        System.err.println("Invalid arguments: Expected one input file and one output file")
+        System.exit(3)
+    }
+    val input = Path.of(args[0])
+    val output = Path.of(args[1])
+    val program = lexAndParse(input)
+    try {
+        SemanticAnalysis(program).analyze()
+    } catch (e: SemanticException) {
+        e.printStackTrace()
+        System.exit(7)
+        return
+    }
+    val graphs: MutableList<IrGraph> = ArrayList<IrGraph>()
+    for (function in program.topLevelTrees) {
+        val translation = SsaTranslation(function, LocalValueNumbering())
+        graphs.add(translation.translate())
     }
 
-    @Throws(IOException::class)
-    private fun lexAndParse(input: Path): ProgramTree {
-        try {
-            val lexer: Lexer = Lexer.Companion.forString(Files.readString(input))
-            val tokenSource = TokenSource(lexer)
-            val parser = Parser(tokenSource)
-            return parser.parseProgram()
-        } catch (e: ParseException) {
-            e.printStackTrace()
-            System.exit(42)
-            throw AssertionError("unreachable")
+    if ("vcg" == System.getenv("DUMP_GRAPHS") || "vcg" == System.getProperty("dumpGraphs")) {
+        val tmp = output.toAbsolutePath().resolveSibling("graphs")
+        Files.createDirectory(tmp)
+        for (graph in graphs) {
+            dumpGraph(graph, tmp, "before-codegen")
         }
     }
 
-    @Throws(IOException::class)
-    private fun dumpGraph(graph: IrGraph, path: Path, key: String) {
-        Files.writeString(
-            path.resolve(graph.name() + "-" + key + ".vcg"),
-            YCompPrinter.Companion.print(graph)
-        )
+    // TODO: generate assembly and invoke gcc instead of generating abstract assembly
+    val s = CodeGenerator().generateCode(graphs)
+    Files.writeString(output, s)
+}
+
+@Throws(IOException::class)
+private fun lexAndParse(input: Path): ProgramTree {
+    try {
+        val lexer: Lexer = Lexer.Companion.forString(Files.readString(input))
+        val tokenSource = TokenSource(lexer)
+        val parser = Parser(tokenSource)
+        return parser.parseProgram()
+    } catch (e: ParseException) {
+        e.printStackTrace()
+        System.exit(42)
+        throw AssertionError("unreachable")
     }
+}
+
+@Throws(IOException::class)
+private fun dumpGraph(graph: IrGraph, path: Path, key: String) {
+    Files.writeString(
+        path.resolve(graph.name() + "-" + key + ".vcg"),
+        YCompPrinter.Companion.print(graph)
+    )
 }
