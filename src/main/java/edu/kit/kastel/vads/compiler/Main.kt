@@ -1,6 +1,6 @@
 package edu.kit.kastel.vads.compiler
 
-import edu.kit.kastel.vads.compiler.backend.aasm.CodeGenerator
+import edu.kit.kastel.vads.compiler.ir.util.IrTextPrinter
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering
@@ -38,16 +38,16 @@ fun main(args: Array<String>) {
         graphs.add(translation.translate())
     }
 
-    if ("vcg" == System.getenv("DUMP_GRAPHS") || "vcg" == System.getProperty("dumpGraphs")) {
+    val dumpGraphs = false
+    if (dumpGraphs) {
         val tmp = output.toAbsolutePath().resolveSibling("graphs")
-        Files.createDirectory(tmp)
         for (graph in graphs) {
             dumpGraph(graph, tmp, "before-codegen")
         }
     }
 
     // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-    val s = CodeGenerator().generateCode(graphs)
+    val s = IrTextPrinter().generateCode(graphs)
     Files.writeString(output, s)
 }
 

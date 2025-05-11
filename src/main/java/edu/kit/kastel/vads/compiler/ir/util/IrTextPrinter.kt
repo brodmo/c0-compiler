@@ -1,11 +1,23 @@
-package edu.kit.kastel.vads.compiler.backend.aasm
+package edu.kit.kastel.vads.compiler.ir.util
 
+import edu.kit.kastel.vads.compiler.backend.aasm.AasmRegisterAllocator
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register
 import edu.kit.kastel.vads.compiler.ir.IrGraph
-import edu.kit.kastel.vads.compiler.ir.node.*
-import edu.kit.kastel.vads.compiler.ir.util.NodeSupport
+import edu.kit.kastel.vads.compiler.ir.node.AddNode
+import edu.kit.kastel.vads.compiler.ir.node.BinaryOperationNode
+import edu.kit.kastel.vads.compiler.ir.node.Block
+import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode
+import edu.kit.kastel.vads.compiler.ir.node.DivNode
+import edu.kit.kastel.vads.compiler.ir.node.ModNode
+import edu.kit.kastel.vads.compiler.ir.node.MulNode
+import edu.kit.kastel.vads.compiler.ir.node.Node
+import edu.kit.kastel.vads.compiler.ir.node.Phi
+import edu.kit.kastel.vads.compiler.ir.node.ProjNode
+import edu.kit.kastel.vads.compiler.ir.node.ReturnNode
+import edu.kit.kastel.vads.compiler.ir.node.StartNode
+import edu.kit.kastel.vads.compiler.ir.node.SubNode
 
-class CodeGenerator {
+class IrTextPrinter {
     fun generateCode(program: List<IrGraph>): String = buildString {
         program.forEach { graph ->
             val allocator = AasmRegisterAllocator()
@@ -49,7 +61,7 @@ class CodeGenerator {
             }
 
             is ReturnNode -> {
-                val result = registers[NodeSupport.predecessorSkipProj(node, ReturnNode.RESULT)]
+                val result = registers[NodeSupport.predecessorSkipProj(node, ReturnNode.Companion.RESULT)]
                 builder.append("  ret $result")
             }
 
@@ -72,8 +84,8 @@ class CodeGenerator {
         opcode: String
     ): String {
         val targetRegister = registers[node]
-        val leftRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.LEFT)]
-        val rightRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.RIGHT)]
+        val leftRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.LEFT)]
+        val rightRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.RIGHT)]
 
         return "$targetRegister = $opcode $leftRegister $rightRegister"
     }
