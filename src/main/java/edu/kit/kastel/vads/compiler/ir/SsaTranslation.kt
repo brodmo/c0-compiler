@@ -12,7 +12,6 @@ import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 import java.util.*
-import java.util.function.BinaryOperator
 
 /** SSA translation as described in
  * [`Simple and Efficient Construction of Static Single Assignment Form`](https://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf).
@@ -26,7 +25,7 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
 
     fun translate(): IrGraph {
         val visitor = SsaTranslationVisitor()
-        this.function.accept<SsaTranslation, Optional<Node>>(visitor, this)
+        this.function.accept(visitor, this)
         return this.constructor.graph()
     }
 
@@ -42,166 +41,184 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
         return this.constructor.currentBlock()
     }
 
-    private class SsaTranslationVisitor : Visitor<SsaTranslation, Optional<Node>> {
-        private val debugStack: Deque<DebugInfo> = ArrayDeque<DebugInfo>()
+    private class SsaTranslationVisitor : Visitor<SsaTranslation, Node?> {
+        private val debugStack: Deque<DebugInfo> = ArrayDeque()
 
-        fun pushSpan(tree: Tree) {
-            this.debugStack.push(DebugInfoHelper.debugInfo)
+        private fun pushSpan(tree: Tree) {
+            debugStack.push(DebugInfoHelper.debugInfo)
             DebugInfoHelper.debugInfo = DebugInfo.SourceInfo(tree.span)
         }
 
-        fun popSpan() {
-            DebugInfoHelper.debugInfo = this.debugStack.pop()
+        private fun popSpan() {
+            DebugInfoHelper.debugInfo = debugStack.pop()
         }
 
-        override fun visit(assignmentTree: AssignmentTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(assignmentTree: AssignmentTree, data: SsaTranslation): Node? {
             pushSpan(assignmentTree)
-            val desugar: BinaryOperator<Node>? = when (assignmentTree.operator.type) {
-                Operator.OperatorType.ASSIGN_MINUS -> BinaryOperator { left: Node, right: Node ->
+
+            val desugar: ((Node, Node) -> Node)? = when (assignmentTree.operator.type) {
+                Operator.OperatorType.ASSIGN_MINUS -> { left, right ->
                     data.constructor.newSub(left, right)
                 }
 
-                Operator.OperatorType.ASSIGN_PLUS -> BinaryOperator { left: Node, right: Node ->
+                Operator.OperatorType.ASSIGN_PLUS -> { left, right ->
                     data.constructor.newAdd(left, right)
                 }
 
-                Operator.OperatorType.ASSIGN_MUL -> BinaryOperator { left: Node, right: Node ->
+                Operator.OperatorType.ASSIGN_MUL -> { left, right ->
                     data.constructor.newMul(left, right)
                 }
 
-                Operator.OperatorType.ASSIGN_DIV -> BinaryOperator { lhs: Node, rhs: Node ->
+                Operator.OperatorType.ASSIGN_DIV -> { lhs, rhs ->
                     projResultDivMod(data, data.constructor.newDiv(lhs, rhs))
                 }
 
-                Operator.OperatorType.ASSIGN_MOD -> BinaryOperator { lhs: Node, rhs: Node ->
+                Operator.OperatorType.ASSIGN_MOD -> { lhs, rhs ->
                     projResultDivMod(data, data.constructor.newMod(lhs, rhs))
                 }
 
                 Operator.OperatorType.ASSIGN -> null
-                else -> throw IllegalArgumentException("not an assignment operator " + assignmentTree.operator)
+                else -> throw IllegalArgumentException("not an assignment operator ${assignmentTree.operator}")
             }
 
             when (val lvalue = assignmentTree.lValue) {
                 is LValueIdentTree -> {
-                    var rhs = assignmentTree.expression.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
+                    var rhs = assignmentTree.expression.accept(this, data)
+                        ?: error("Assignment expression must produce a value")
+
                     if (desugar != null) {
-                        rhs = desugar.apply(data.readVariable(lvalue.name.name, data.currentBlock()), rhs)
+                        rhs = desugar(data.readVariable(lvalue.name.name, data.currentBlock()), rhs)
                     }
                     data.writeVariable(lvalue.name.name, data.currentBlock(), rhs)
                 }
             }
             popSpan()
-            return NOT_AN_EXPRESSION
+            return null
         }
 
-        override fun visit(binaryOperationTree: BinaryOperationTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(binaryOperationTree: BinaryOperationTree, data: SsaTranslation): Node {
             pushSpan(binaryOperationTree)
-            val lhs = binaryOperationTree.lhs.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
-            val rhs = binaryOperationTree.rhs.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
+
+            val lhs = binaryOperationTree.lhs.accept(this, data)
+                ?: error("Left-hand side of binary operation must produce a value")
+            val rhs = binaryOperationTree.rhs.accept(this, data)
+                ?: error("Right-hand side of binary operation must produce a value")
+
             val res = when (binaryOperationTree.operatorType) {
                 Operator.OperatorType.MINUS -> data.constructor.newSub(lhs, rhs)
                 Operator.OperatorType.PLUS -> data.constructor.newAdd(lhs, rhs)
                 Operator.OperatorType.MUL -> data.constructor.newMul(lhs, rhs)
                 Operator.OperatorType.DIV -> projResultDivMod(data, data.constructor.newDiv(lhs, rhs))
                 Operator.OperatorType.MOD -> projResultDivMod(data, data.constructor.newMod(lhs, rhs))
-                else -> throw IllegalArgumentException("not a binary expression operator " + binaryOperationTree.operatorType)
+                else -> throw IllegalArgumentException("not a binary expression operator ${binaryOperationTree.operatorType}")
             }
+
             popSpan()
-            return Optional.of<Node>(res)
+            return res
         }
 
-        override fun visit(blockTree: BlockTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(blockTree: BlockTree, data: SsaTranslation): Node? {
             pushSpan(blockTree)
+
             for (statement in blockTree.statements) {
-                statement.accept<SsaTranslation, Optional<Node>>(this, data)
+                statement.accept(this, data)
                 // skip everything after a return in a block
                 if (statement is ReturnTree) {
                     break
                 }
             }
+
             popSpan()
-            return NOT_AN_EXPRESSION
+            return null
         }
 
-        override fun visit(declarationTree: DeclarationTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(declarationTree: DeclarationTree, data: SsaTranslation): Node? {
             pushSpan(declarationTree)
+
             if (declarationTree.initializer != null) {
-                val rhs = declarationTree.initializer.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
+                val rhs = declarationTree.initializer.accept(this, data)
+                    ?: error("Declaration initializer must produce a value")
                 data.writeVariable(declarationTree.name.name, data.currentBlock(), rhs)
             }
+
             popSpan()
-            return NOT_AN_EXPRESSION
+            return null
         }
 
-        override fun visit(functionTree: FunctionTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(functionTree: FunctionTree, data: SsaTranslation): Node? {
             pushSpan(functionTree)
+
             val start = data.constructor.newStart()
             data.constructor.writeCurrentSideEffect(data.constructor.newSideEffectProj(start))
-            functionTree.body.accept<SsaTranslation, Optional<Node>>(this, data)
+            functionTree.body.accept(this, data)
+
             popSpan()
-            return NOT_AN_EXPRESSION
+            return null
         }
 
-        override fun visit(identExpressionTree: IdentExpressionTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(identExpressionTree: IdentExpressionTree, data: SsaTranslation): Node {
             pushSpan(identExpressionTree)
             val value = data.readVariable(identExpressionTree.name.name, data.currentBlock())
             popSpan()
-            return Optional.of<Node>(value)
+            return value
         }
 
-        override fun visit(literalTree: LiteralTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(literalTree: LiteralTree, data: SsaTranslation): Node? {
             pushSpan(literalTree)
-            val node = data.constructor.newConstInt(literalTree.parseValue().orElseThrow().toInt())
+            val value = literalTree.parseValue() ?: error("LiteralTree must produce a value")
+            val node = data.constructor.newConstInt(value.toInt())
             popSpan()
-            return Optional.of<Node>(node)
+            return node
         }
 
-        override fun visit(lValueIdentTree: LValueIdentTree, data: SsaTranslation): Optional<Node> {
-            return NOT_AN_EXPRESSION
+        override fun visit(lValueIdentTree: LValueIdentTree, data: SsaTranslation): Node? {
+            return null
         }
 
-        override fun visit(nameTree: NameTree, data: SsaTranslation): Optional<Node> {
-            return NOT_AN_EXPRESSION
+        override fun visit(nameTree: NameTree, data: SsaTranslation): Node? {
+            return null
         }
 
-        override fun visit(negateTree: NegateTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(negateTree: NegateTree, data: SsaTranslation): Node {
             pushSpan(negateTree)
-            val node = negateTree.expression.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
+
+            val node = negateTree.expression.accept(this, data)
+                ?: error("Negation expression must produce a value")
             val res = data.constructor.newSub(data.constructor.newConstInt(0), node)
+
             popSpan()
-            return Optional.of<Node>(res)
+            return res
         }
 
-        override fun visit(programTree: ProgramTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(programTree: ProgramTree, data: SsaTranslation): Node? {
             throw UnsupportedOperationException()
         }
 
-        override fun visit(returnTree: ReturnTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(returnTree: ReturnTree, data: SsaTranslation): Node? {
             pushSpan(returnTree)
-            val node = returnTree.expression.accept<SsaTranslation, Optional<Node>>(this, data).orElseThrow()
+
+            val node = returnTree.expression.accept(this, data)
+                ?: error("Return expression must produce a value")
             val ret = data.constructor.newReturn(node)
             data.constructor.graph().endBlock().addPredecessor(ret)
+
             popSpan()
-            return NOT_AN_EXPRESSION
+            return null
         }
 
-        override fun visit(typeTree: TypeTree, data: SsaTranslation): Optional<Node> {
+        override fun visit(typeTree: TypeTree, data: SsaTranslation): Node? {
             throw UnsupportedOperationException()
         }
 
-        fun projResultDivMod(data: SsaTranslation, divMod: Node): Node {
+        private fun projResultDivMod(data: SsaTranslation, divMod: Node): Node {
             // make sure we actually have a div or a mod, as optimizations could
             // have changed it to something else already
-            if (!(divMod is DivNode || divMod is ModNode)) {
+            if (divMod !is DivNode && divMod !is ModNode) {
                 return divMod
             }
             val projSideEffect = data.constructor.newSideEffectProj(divMod)
             data.constructor.writeCurrentSideEffect(projSideEffect)
             return data.constructor.newResultProj(divMod)
-        }
-
-        companion object {
-            private val NOT_AN_EXPRESSION = Optional.empty<Node>()
         }
     }
 }
