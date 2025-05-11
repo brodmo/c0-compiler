@@ -90,20 +90,20 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
 
 
     private fun readVariableRecursive(variable: Name, block: Block): Node {
-        var `val`: Node
+        var value: Node
         if (!this.sealedBlocks.contains(block)) {
-            `val` = newPhi()
+            value = newPhi()
             this.incompletePhis.computeIfAbsent(block, Function { `_`: Block -> mutableMapOf() })
-                .put(variable, `val`)
+                .put(variable, value)
         } else if (block.predecessors().size == 1) {
-            `val` = readVariable(variable, block.predecessors().first().block())
+            value = readVariable(variable, block.predecessors().first().block())
         } else {
-            `val` = newPhi()
-            writeVariable(variable, block, `val`)
-            `val` = addPhiOperands(variable, `val`)
+            value = newPhi()
+            writeVariable(variable, block, value)
+            value = addPhiOperands(variable, value)
         }
-        writeVariable(variable, block, `val`)
-        return `val`
+        writeVariable(variable, block, value)
+        return value
     }
 
     fun addPhiOperands(variable: Name, phi: Phi): Node {
@@ -149,20 +149,20 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     private fun readSideEffectRecursive(block: Block): Node {
-        var `val`: Node
+        var value: Node
         if (!this.sealedBlocks.contains(block)) {
-            `val` = newPhi()
-            val old = this.incompleteSideEffectPhis.put(block, `val`)
-            assert(old == null) { "double readSideEffectRecursive for " + block }
+            value = newPhi()
+            val old = this.incompleteSideEffectPhis.put(block, value)
+            assert(old == null) { "double readSideEffectRecursive for $block" }
         } else if (block.predecessors().size == 1) {
-            `val` = readSideEffect(block.predecessors().first().block())
+            value = readSideEffect(block.predecessors().first().block())
         } else {
-            `val` = newPhi()
-            writeSideEffect(block, `val`)
-            `val` = addPhiOperands(`val`)
+            value = newPhi()
+            writeSideEffect(block, value)
+            value = addPhiOperands(value)
         }
-        writeSideEffect(block, `val`)
-        return `val`
+        writeSideEffect(block, value)
+        return value
     }
 
     fun addPhiOperands(phi: Phi): Node {
