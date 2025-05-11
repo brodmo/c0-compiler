@@ -6,22 +6,23 @@ import edu.kit.kastel.vads.compiler.ir.node.*
 import edu.kit.kastel.vads.compiler.ir.util.NodeSupport
 
 class CodeGenerator {
-    fun generateCode(program: MutableList<IrGraph>): String {
-        val builder = StringBuilder()
-        for (graph in program) {
+    fun generateCode(program: List<IrGraph>): String = buildString {
+        program.forEach { graph ->
             val allocator = AasmRegisterAllocator()
             val registers = allocator.allocateRegisters(graph)
-            builder.append("function ")
-                .append(graph.name())
-                .append(" {\n")
-            generateForGraph(graph, builder, registers)
-            builder.append("}")
+
+            append("function ${graph.name()} {\n")
+            generateForGraph(graph, this, registers)
+            append("}")
         }
-        return builder.toString()
     }
 
-    private fun generateForGraph(graph: IrGraph, builder: StringBuilder, registers: MutableMap<Node, Register>) {
-        val visited: MutableSet<Node> = mutableSetOf()
+    private fun generateForGraph(
+        graph: IrGraph,
+        builder: StringBuilder,
+        registers: Map<Node, Register>
+    ) {
+        val visited = mutableSetOf<Node>()
         scan(graph.endBlock(), visited, builder, registers)
     }
 
@@ -29,51 +30,51 @@ class CodeGenerator {
         node: Node,
         visited: MutableSet<Node>,
         builder: StringBuilder,
-        registers: MutableMap<Node, Register>
+        registers: Map<Node, Register>
     ) {
-        for (predecessor in node.predecessors()) {
-            if (visited.add(predecessor)) {
-                scan(predecessor, visited, builder, registers)
-            }
-        }
-
+        node.predecessors()
+            .filter { visited.add(it) }
+            .forEach { scan(it, visited, builder, registers) }
         when (node) {
-            is AddNode -> binary(builder, registers, node, "add")
-            is SubNode -> binary(builder, registers, node, "sub")
-            is MulNode -> binary(builder, registers, node, "mul")
-            is DivNode -> binary(builder, registers, node, "div")
-            is ModNode -> binary(builder, registers, node, "mod")
-            is ReturnNode -> builder.repeat(" ", 2).append("ret ")
-                .append(registers[NodeSupport.predecessorSkipProj(node, ReturnNode.Companion.RESULT)])
+            is BinaryOperationNode -> {
+                val opcode = when (node) {
+                    is AddNode -> "add"
+                    is SubNode -> "sub"
+                    is MulNode -> "mul"
+                    is DivNode -> "div"
+                    is ModNode -> "mod"
+                }
+                val op = generateBinaryOperation(registers, node, opcode)
+                builder.append("  $op")
+            }
 
-            is ConstIntNode -> builder.repeat(" ", 2)
-                .append(registers[node])
-                .append(" = const ")
-                .append(node.value())
+            is ReturnNode -> {
+                val result = registers[NodeSupport.predecessorSkipProj(node, ReturnNode.RESULT)]
+                builder.append("  ret $result")
+            }
+
+            is ConstIntNode -> {
+                val register = registers[node]
+                builder.append("  $register = const ${node.value()}")
+            }
 
             is Phi -> throw UnsupportedOperationException("phi")
-            is Block, is ProjNode, is StartNode -> {
-                // do nothing, skip line break
-                return
-            }
+
+            is Block, is ProjNode, is StartNode -> return
         }
+
         builder.append("\n")
     }
 
-    companion object {
-        private fun binary(
-            builder: StringBuilder,
-            registers: MutableMap<Node, Register>,
-            node: BinaryOperationNode,
-            opcode: String
-        ) {
-            builder.repeat(" ", 2).append(registers[node])
-                .append(" = ")
-                .append(opcode)
-                .append(" ")
-                .append(registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.LEFT)])
-                .append(" ")
-                .append(registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.Companion.RIGHT)])
-        }
+    private fun generateBinaryOperation(
+        registers: Map<Node, Register>,
+        node: BinaryOperationNode,
+        opcode: String
+    ): String {
+        val targetRegister = registers[node]
+        val leftRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.LEFT)]
+        val rightRegister = registers[NodeSupport.predecessorSkipProj(node, BinaryOperationNode.RIGHT)]
+
+        return "$targetRegister = $opcode $leftRegister $rightRegister"
     }
 }

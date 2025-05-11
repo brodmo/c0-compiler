@@ -1,6 +1,6 @@
 package edu.kit.kastel.vads.compiler.ir.node
 
-abstract class BinaryOperationNode : Node {
+sealed class BinaryOperationNode : Node {
     protected constructor(block: Block, left: Node, right: Node) : super(block, left, right)
 
     protected constructor(block: Block, left: Node, right: Node, sideEffect: Node) : super(
@@ -31,24 +31,19 @@ abstract class BinaryOperationNode : Node {
         const val RIGHT: Int = 1
 
         internal fun commutativeHashCode(node: BinaryOperationNode): Int {
-            var h = node.block().hashCode()
-            // commutative operation: we want h(op(x, y)) == h(op(y, x))
-            h += 31 * (predecessorHash(node, LEFT) xor predecessorHash(node, RIGHT))
-            return h
+            val operands = setOf(
+                predecessorHash(node, LEFT),
+                predecessorHash(node, RIGHT)
+            )
+            return listOf(node.block(), operands).hashCode()
         }
 
         internal fun commutativeEquals(a: BinaryOperationNode, bObj: Any?): Boolean {
-            if (bObj !is BinaryOperationNode) {
-                return false
-            }
-            if (a.javaClass != bObj.javaClass) {
-                return false
-            }
-            if (a.predecessor(LEFT) === bObj.predecessor(LEFT) && a.predecessor(RIGHT) === bObj.predecessor(RIGHT)) {
-                return true
-            }
-            // commutative operation: op(x, y) == op(y, x)
-            return a.predecessor(LEFT) === bObj.predecessor(RIGHT) && a.predecessor(RIGHT) === bObj.predecessor(LEFT)
+            val b = bObj as? BinaryOperationNode ?: return false
+            if (a::class != b::class) return false
+            val aOperands = setOf(a.predecessor(LEFT), a.predecessor(RIGHT))
+            val bOperands = setOf(b.predecessor(LEFT), b.predecessor(RIGHT))
+            return aOperands == bOperands
         }
     }
 }
