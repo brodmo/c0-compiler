@@ -191,9 +191,9 @@ class YCompPrinter(private val graph: IrGraph) {
             is ConstIntNode -> VcgColor.NORMAL
             is Phi -> VcgColor.PHI
             is ProjNode -> {
-                if (node.projectionInfo() == SimpleProjectionInfo.SIDE_EFFECT) {
+                if (node.projectionInfo == SimpleProjectionInfo.SIDE_EFFECT) {
                     VcgColor.MEMORY
-                } else if (node.projectionInfo() == SimpleProjectionInfo.RESULT) {
+                } else if (node.projectionInfo == SimpleProjectionInfo.RESULT) {
                     VcgColor.NORMAL
                 } else {
                     VcgColor.NORMAL

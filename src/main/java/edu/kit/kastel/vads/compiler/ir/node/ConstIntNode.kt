@@ -1,10 +1,6 @@
 package edu.kit.kastel.vads.compiler.ir.node
 
-class ConstIntNode(block: Block, private val value: Int) : Node(block) {
-    fun value(): Int {
-        return this.value
-    }
-
+class ConstIntNode(block: Block, val value: Int) : Node(block) {
     override fun equals(other: Any?): Boolean {
         if (other is ConstIntNode) {
             return this.block() == other.block() && other.value == this.value

@@ -6,10 +6,10 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfo.NoInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 
 /** The base class for all nodes. */
-abstract class Node {
+sealed class Node {
     private val graph: IrGraph
     private val block: Block
-    private val predecessors: MutableList<Node> = ArrayList<Node>()
+    private val predecessors: MutableList<Node> = mutableListOf()
     private val debugInfo: DebugInfo
 
     protected constructor(block: Block, vararg predecessors: Node) {

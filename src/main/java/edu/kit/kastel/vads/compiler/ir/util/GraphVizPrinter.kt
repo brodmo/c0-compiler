@@ -10,7 +10,7 @@ import java.util.function.Function
 /** Outputs a DOT format string to visualize an [IrGraph]. */
 class GraphVizPrinter(private val graph: IrGraph) {
     private val clusters: MutableMap<Block, MutableSet<Node>> = mutableMapOf()
-    private val edges: MutableList<Edge> = ArrayList<Edge>()
+    private val edges: MutableList<Edge> = mutableListOf()
     private val ids: MutableMap<Node, Int> = mutableMapOf()
     private val builder = StringBuilder()
     private var counter = 0
