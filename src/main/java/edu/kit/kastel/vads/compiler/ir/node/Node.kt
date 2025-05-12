@@ -8,14 +8,15 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 sealed class Node(
     val graph: IrGraph,
     val block: Block?,
-    val predecessors: MutableList<Node> = mutableListOf()
+    private val predecessors: MutableList<Node> = mutableListOf(),
+    private val successors: MutableList<Node> = mutableListOf()
 ) {
     val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
     val safeBlock: Block = block ?: this as Block
 
     init {
         predecessors.forEach { predecessor ->
-            graph.registerSuccessor(predecessor, this)
+            predecessor.successors.add(this)
         }
     }
 
@@ -25,15 +26,17 @@ sealed class Node(
 
     fun predecessors(): List<Node> = predecessors.toList()
 
+    fun successors(): List<Node> = successors.toList()
+
     fun setPredecessor(idx: Int, node: Node) {
-        graph.removeSuccessor(predecessors[idx], this)
+        predecessors[idx].successors.remove(this)
         predecessors[idx] = node
-        graph.registerSuccessor(node, this)
+        node.successors.add(this)
     }
 
     fun addPredecessor(node: Node) {
         predecessors.add(node)
-        graph.registerSuccessor(node, this)
+        node.successors.add(this)
     }
 
     fun predecessor(idx: Int): Node = predecessors[idx]
