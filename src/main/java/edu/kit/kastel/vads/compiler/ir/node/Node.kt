@@ -7,16 +7,14 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 /** The base class for all nodes. */
 sealed class Node(
     val graph: IrGraph,
-    private val maybeBlock: Block?,
+    val block: Block?,
     val predecessors: MutableList<Node> = mutableListOf()
 ) {
     val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
-    val block: Block
-        get() = maybeBlock ?: this as Block
+    val safeBlock: Block = block ?: this as Block
 
     init {
-        maybeBlock ?: assert(this is Block)
-        for (predecessor in predecessors) {
+        predecessors.forEach { predecessor ->
             graph.registerSuccessor(predecessor, this)
         }
     }
@@ -25,36 +23,28 @@ sealed class Node(
         block.graph, block, predecessors.toMutableList()
     )
 
-    fun predecessors(): MutableList<out Node> {
-        return this.predecessors.toMutableList()
-    }
+    fun predecessors(): List<Node> = predecessors.toList()
 
     fun setPredecessor(idx: Int, node: Node) {
-        this.graph.removeSuccessor(this.predecessors[idx], this)
-        this.predecessors[idx] = node
-        this.graph.registerSuccessor(node, this)
+        graph.removeSuccessor(predecessors[idx], this)
+        predecessors[idx] = node
+        graph.registerSuccessor(node, this)
     }
 
     fun addPredecessor(node: Node) {
-        this.predecessors.add(node)
-        this.graph.registerSuccessor(node, this)
+        predecessors.add(node)
+        graph.registerSuccessor(node, this)
     }
 
-    fun predecessor(idx: Int): Node {
-        return this.predecessors[idx]
-    }
+    fun predecessor(idx: Int): Node = predecessors[idx]
 
-    override fun toString(): String {
-        return (this.javaClass.getSimpleName().replace("Node", "") + " " + info()).trimEnd()
-    }
+    override fun toString(): String =
+        "${javaClass.simpleName.replace("Node", "")} ${info()}".trimEnd()
 
-    protected open fun info(): String {
-        return ""
-    }
+    protected open fun info(): String = ""
 
     companion object {
-        internal fun predecessorHash(node: Node, predecessor: Int): Int {
-            return System.identityHashCode(node.predecessor(predecessor))
-        }
+        internal fun predecessorHash(node: Node, predecessor: Int): Int =
+            System.identityHashCode(node.predecessor(predecessor))
     }
 }

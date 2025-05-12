@@ -30,7 +30,7 @@ sealed class BinaryOperationNode : Node {
             val operands = setOf(
                 predecessorHash(node, LEFT), predecessorHash(node, RIGHT)
             )
-            return listOf(node.block, operands).hashCode()
+            return listOf(node.safeBlock, operands).hashCode()
         }
 
         internal fun commutativeEquals(a: BinaryOperationNode, bObj: Any?): Boolean {

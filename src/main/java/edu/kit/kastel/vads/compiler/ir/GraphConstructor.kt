@@ -4,103 +4,112 @@ import edu.kit.kastel.vads.compiler.ir.node.*
 import edu.kit.kastel.vads.compiler.ir.node.ProjNode.SimpleProjectionInfo
 import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
-import java.util.function.Function
 
 internal class GraphConstructor(private val optimizer: Optimizer, name: String) {
     val graph: IrGraph = IrGraph(name)
-    private val currentDef: MutableMap<Name, MutableMap<Block, Node>> = mutableMapOf()
-    private val incompletePhis: MutableMap<Block, MutableMap<Name, Phi>> = mutableMapOf()
-    private val currentSideEffect: MutableMap<Block, Node> = mutableMapOf()
-    private val incompleteSideEffectPhis: MutableMap<Block, Phi> = mutableMapOf()
-    private val sealedBlocks: MutableSet<Block> = mutableSetOf()
-    val currentBlock: Block = this.graph.startBlock
+    private val currentDef = mutableMapOf<Name, MutableMap<Block, Node>>()
+    private val incompletePhis = mutableMapOf<Block, MutableMap<Name, Phi>>()
+    private val currentSideEffect = mutableMapOf<Block, Node>()
+    private val incompleteSideEffectPhis = mutableMapOf<Block, Phi>()
+    private val sealedBlocks = mutableSetOf<Block>()
+    val currentBlock: Block = graph.startBlock
 
     init {
         // the start block never gets any more predecessors
-        sealBlock(this.currentBlock)
+        sealBlock(currentBlock)
     }
 
     fun newStart(): Node {
-        assert(currentBlock == this.graph.startBlock) { "start must be in start block" }
+        assert(currentBlock == graph.startBlock) { "start must be in start block" }
         return StartNode(currentBlock)
     }
 
-    fun newAdd(left: Node, right: Node): Node {
-        return this.optimizer.transform(AddNode(currentBlock, left, right))
-    }
+    fun newAdd(left: Node, right: Node): Node =
+        optimizer.transform(AddNode(currentBlock, left, right))
 
-    fun newSub(left: Node, right: Node): Node {
-        return this.optimizer.transform(SubNode(currentBlock, left, right))
-    }
+    fun newSub(left: Node, right: Node): Node =
+        optimizer.transform(SubNode(currentBlock, left, right))
 
-    fun newMul(left: Node, right: Node): Node {
-        return this.optimizer.transform(MulNode(currentBlock, left, right))
-    }
+    fun newMul(left: Node, right: Node): Node =
+        optimizer.transform(MulNode(currentBlock, left, right))
 
-    fun newDiv(left: Node, right: Node): Node {
-        return this.optimizer.transform(DivNode(currentBlock, left, right, readCurrentSideEffect()))
-    }
+    fun newDiv(left: Node, right: Node): Node =
+        optimizer.transform(DivNode(currentBlock, left, right, readCurrentSideEffect()))
 
-    fun newMod(left: Node, right: Node): Node {
-        return this.optimizer.transform(ModNode(currentBlock, left, right, readCurrentSideEffect()))
-    }
+    fun newMod(left: Node, right: Node): Node =
+        optimizer.transform(ModNode(currentBlock, left, right, readCurrentSideEffect()))
 
-    fun newReturn(result: Node): Node {
-        return ReturnNode(currentBlock, readCurrentSideEffect(), result)
-    }
+    fun newReturn(result: Node): Node =
+        ReturnNode(currentBlock, readCurrentSideEffect(), result)
 
-    fun newConstInt(value: Int): Node {
+    fun newConstInt(value: Int): Node =
         // always move const into start block, this allows better deduplication
         // and resultingly in better value numbering
-        return this.optimizer.transform(ConstIntNode(this.graph.startBlock, value))
-    }
+        optimizer.transform(ConstIntNode(graph.startBlock, value))
 
-    fun newSideEffectProj(node: Node): Node {
-        return ProjNode(currentBlock, node, SimpleProjectionInfo.SIDE_EFFECT)
-    }
+    fun newSideEffectProj(node: Node): Node =
+        ProjNode(currentBlock, node, SimpleProjectionInfo.SIDE_EFFECT)
 
-    fun newResultProj(node: Node): Node {
-        return ProjNode(currentBlock, node, SimpleProjectionInfo.RESULT)
-    }
+    fun newResultProj(node: Node): Node =
+        ProjNode(currentBlock, node, SimpleProjectionInfo.RESULT)
 
-    fun newPhi(): Phi {
-        // don't transform phi directly, it is not ready yet
-        return Phi(currentBlock)
-    }
+    fun newPhi(): Phi = Phi(currentBlock)
 
     fun writeVariable(variable: Name, block: Block, value: Node) {
-        this.currentDef.computeIfAbsent(variable, Function { `_`: Name -> mutableMapOf() }).put(block, value)
+        currentDef.getOrPut(variable) { mutableMapOf() }[block] = value
     }
 
-    fun readVariable(variable: Name, block: Block): Node {
-        val node = this.currentDef.getOrDefault(variable, mutableMapOf())[block]
-        if (node != null) {
-            return node
-        }
-        return readVariableRecursive(variable, block)
-    }
-
+    fun readVariable(variable: Name, block: Block): Node =
+        currentDef[variable]?.get(block) ?: readVariableRecursive(variable, block)
 
     private fun readVariableRecursive(variable: Name, block: Block): Node {
-        var value: Node
-        if (!this.sealedBlocks.contains(block)) {
-            value = newPhi()
-            this.incompletePhis.computeIfAbsent(block, Function { `_`: Block -> mutableMapOf() })
-                .put(variable, value)
-        } else if (block.predecessors().size == 1) {
-            value = readVariable(variable, block.predecessors().first().block)
-        } else {
-            value = newPhi()
-            writeVariable(variable, block, value)
-            value = addPhiOperands(variable, value)
+        val value = when {
+            block !in sealedBlocks -> {
+                newPhi().also {
+                    incompletePhis.getOrPut(block) { mutableMapOf() }[variable] = it
+                }
+            }
+            block.predecessors().size == 1 -> {
+                readVariable(variable, block.predecessors().first().safeBlock)
+            }
+            else -> {
+                newPhi().also {
+                    writeVariable(variable, block, it)
+                    addPhiOperands(variable, it)
+                }
+            }
         }
+
         writeVariable(variable, block, value)
         return value
     }
 
+    private fun readSideEffectRecursive(block: Block): Node {
+        val value = when {
+            block !in sealedBlocks -> {
+                newPhi().also {
+                    val old = incompleteSideEffectPhis.put(block, it)
+                    assert(old == null) { "double readSideEffectRecursive for $block" }
+                }
+            }
+            block.predecessors().size == 1 -> {
+                readSideEffect(block.predecessors().first().safeBlock)
+            }
+            else -> {
+                newPhi().also {
+                    writeSideEffect(block, it)
+                    addPhiOperands(it)
+                }
+            }
+        }
+
+        writeSideEffect(block, value)
+        return value
+    }
+
     fun addPhiOperands(variable: Name, phi: Phi): Node {
-        for (pred in phi.block.predecessors()) {
-            phi.appendOperand(readVariable(variable, pred.block))
+        phi.safeBlock.predecessors().forEach { pred ->
+            phi.appendOperand(readVariable(variable, pred.safeBlock))
         }
         return tryRemoveTrivialPhi(phi)
     }
@@ -114,10 +123,10 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun sealBlock(block: Block) {
-        for (entry in this.incompletePhis.getOrDefault(block, mutableMapOf()).entries) {
-            addPhiOperands(entry.key, entry.value)
+        incompletePhis[block]?.forEach { (key, value) ->
+            addPhiOperands(key, value)
         }
-        this.sealedBlocks.add(block)
+        sealedBlocks.add(block)
     }
 
     fun writeCurrentSideEffect(node: Node) {
@@ -125,41 +134,17 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     private fun writeSideEffect(block: Block, node: Node) {
-        this.currentSideEffect.put(block, node)
+        currentSideEffect[block] = node
     }
 
-    fun readCurrentSideEffect(): Node {
-        return readSideEffect(currentBlock)
-    }
+    fun readCurrentSideEffect(): Node = readSideEffect(currentBlock)
 
-    private fun readSideEffect(block: Block): Node {
-        val node = this.currentSideEffect[block]
-        if (node != null) {
-            return node
-        }
-        return readSideEffectRecursive(block)
-    }
-
-    private fun readSideEffectRecursive(block: Block): Node {
-        var value: Node
-        if (!this.sealedBlocks.contains(block)) {
-            value = newPhi()
-            val old = this.incompleteSideEffectPhis.put(block, value)
-            assert(old == null) { "double readSideEffectRecursive for $block" }
-        } else if (block.predecessors().size == 1) {
-            value = readSideEffect(block.predecessors().first().block)
-        } else {
-            value = newPhi()
-            writeSideEffect(block, value)
-            value = addPhiOperands(value)
-        }
-        writeSideEffect(block, value)
-        return value
-    }
+    private fun readSideEffect(block: Block): Node =
+        currentSideEffect[block] ?: readSideEffectRecursive(block)
 
     fun addPhiOperands(phi: Phi): Node {
-        for (pred in phi.block.predecessors()) {
-            phi.appendOperand(readSideEffect(pred.block))
+        phi.safeBlock.predecessors().forEach { pred ->
+            phi.appendOperand(readSideEffect(pred.safeBlock))
         }
         return tryRemoveTrivialPhi(phi)
     }
