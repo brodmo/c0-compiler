@@ -2,32 +2,28 @@ package edu.kit.kastel.vads.compiler.ir.node
 
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo
-import edu.kit.kastel.vads.compiler.ir.util.DebugInfo.NoInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 
 /** The base class for all nodes. */
-sealed class Node {
-    val graph: IrGraph
+sealed class Node(
+    val graph: IrGraph,
+    private val maybeBlock: Block?,
+    val predecessors: MutableList<Node> = mutableListOf()
+) {
+    val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
     val block: Block
-    private val predecessors: MutableList<Node> = mutableListOf()
-    val debugInfo: DebugInfo
+        get() = maybeBlock ?: this as Block
 
-    protected constructor(block: Block, vararg predecessors: Node) {
-        this.graph = block.graph
-        this.block = block
-        this.predecessors.addAll(predecessors)
+    init {
+        maybeBlock ?: assert(this is Block)
         for (predecessor in predecessors) {
             graph.registerSuccessor(predecessor, this)
         }
-        this.debugInfo = DebugInfoHelper.debugInfo
     }
 
-    protected constructor(graph: IrGraph) {
-        assert(this.javaClass == Block::class.java) { "must be used by Block only" }
-        this.graph = graph
-        this.block = this as Block
-        this.debugInfo = NoInfo.INSTANCE
-    }
+    constructor(block: Block, vararg predecessors: Node) : this(
+        block.graph, block, predecessors.toMutableList()
+    )
 
     fun predecessors(): MutableList<out Node> {
         return this.predecessors.toMutableList()
