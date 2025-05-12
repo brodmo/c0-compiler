@@ -1,7 +1,6 @@
 package edu.kit.kastel.vads.compiler.ir
 
 import edu.kit.kastel.vads.compiler.ir.node.*
-import edu.kit.kastel.vads.compiler.ir.node.ProjNode.SimpleProjectionInfo
 import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 
@@ -25,33 +24,33 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun newAdd(left: Node, right: Node): Node =
-        optimizer.transform(AddNode(currentBlock, left, right))
+        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.ADD, left, right))
 
     fun newSub(left: Node, right: Node): Node =
-        optimizer.transform(SubNode(currentBlock, left, right))
+        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.SUBTRACT, left, right))
 
     fun newMul(left: Node, right: Node): Node =
-        optimizer.transform(MulNode(currentBlock, left, right))
+        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.MULTIPLY, left, right))
 
     fun newDiv(left: Node, right: Node): Node =
-        optimizer.transform(DivNode(currentBlock, left, right, readCurrentSideEffect()))
+        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.DIVIDE, left, right, readCurrentSideEffect()))
 
     fun newMod(left: Node, right: Node): Node =
-        optimizer.transform(ModNode(currentBlock, left, right, readCurrentSideEffect()))
+        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.MODULO, left, right, readCurrentSideEffect()))
 
     fun newReturn(result: Node): Node =
         ReturnNode(currentBlock, readCurrentSideEffect(), result)
 
     fun newConstInt(value: Int): Node =
-        // always move const into start block, this allows better deduplication
+    // always move const into start block, this allows better deduplication
         // and resultingly in better value numbering
         optimizer.transform(ConstIntNode(graph.startBlock, value))
 
     fun newSideEffectProj(node: Node): Node =
-        ProjNode(currentBlock, node, SimpleProjectionInfo.SIDE_EFFECT)
+        ProjNode(currentBlock, node, ProjectionInfo.SIDE_EFFECT)
 
     fun newResultProj(node: Node): Node =
-        ProjNode(currentBlock, node, SimpleProjectionInfo.RESULT)
+        ProjNode(currentBlock, node, ProjectionInfo.RESULT)
 
     fun newPhi(): Phi = Phi(currentBlock)
 
@@ -69,9 +68,11 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
                     incompletePhis.getOrPut(block) { mutableMapOf() }[variable] = it
                 }
             }
-            block.predecessors().size == 1 -> {
-                readVariable(variable, block.predecessors().first().safeBlock)
+
+            block.predecessors.size == 1 -> {
+                readVariable(variable, block.predecessors.first().safeBlock)
             }
+
             else -> {
                 newPhi().also {
                     writeVariable(variable, block, it)
@@ -92,9 +93,11 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
                     assert(old == null) { "double readSideEffectRecursive for $block" }
                 }
             }
-            block.predecessors().size == 1 -> {
-                readSideEffect(block.predecessors().first().safeBlock)
+
+            block.predecessors.size == 1 -> {
+                readSideEffect(block.predecessors.first().safeBlock)
             }
+
             else -> {
                 newPhi().also {
                     writeSideEffect(block, it)
@@ -108,8 +111,8 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun addPhiOperands(variable: Name, phi: Phi): Node {
-        phi.safeBlock.predecessors().forEach { pred ->
-            phi.appendOperand(readVariable(variable, pred.safeBlock))
+        phi.safeBlock.predecessors.forEach { pred ->
+            phi.addPredecessor(readVariable(variable, pred.safeBlock))
         }
         return tryRemoveTrivialPhi(phi)
     }
@@ -143,8 +146,8 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
         currentSideEffect[block] ?: readSideEffectRecursive(block)
 
     fun addPhiOperands(phi: Phi): Node {
-        phi.safeBlock.predecessors().forEach { pred ->
-            phi.appendOperand(readSideEffect(pred.safeBlock))
+        phi.safeBlock.predecessors.forEach { pred ->
+            phi.addPredecessor(readSideEffect(pred.safeBlock))
         }
         return tryRemoveTrivialPhi(phi)
     }

@@ -4,50 +4,33 @@ import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 
-/** The base class for all nodes. */
 sealed class Node(
     val graph: IrGraph,
     val block: Block?,
-    private val predecessors: MutableList<Node> = mutableListOf(),
-    private val successors: MutableList<Node> = mutableListOf()
+    val predecessors: MutableList<Node> = mutableListOf()
 ) {
-    val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
+    val successors: MutableList<Node> = mutableListOf()
     val safeBlock: Block = block ?: this as Block
+    val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
 
     init {
+        // The only possible causes of an NPE in Kotlin are: [...]
+        // - A superclass constructor calling an open member whose implementation in the derived class uses an uninitialized state.
+        // Hence we cannot declare predecessors open
         predecessors.forEach { predecessor ->
             predecessor.successors.add(this)
         }
     }
 
-    constructor(block: Block, vararg predecessors: Node) : this(
-        block.graph, block, predecessors.toMutableList()
+    constructor(block: Block, predecessors: MutableList<Node> = mutableListOf()) : this(
+        block.graph,
+        block,
+        predecessors
     )
 
-    fun predecessors(): List<Node> = predecessors.toList()
+    open fun skipProj(): Node = this
 
-    fun successors(): List<Node> = successors.toList()
+    override fun toString(): String = listOfNotNull(this::class.simpleName, info()).joinToString(" ")
 
-    fun setPredecessor(idx: Int, node: Node) {
-        predecessors[idx].successors.remove(this)
-        predecessors[idx] = node
-        node.successors.add(this)
-    }
-
-    fun addPredecessor(node: Node) {
-        predecessors.add(node)
-        node.successors.add(this)
-    }
-
-    fun predecessor(idx: Int): Node = predecessors[idx]
-
-    override fun toString(): String =
-        "${javaClass.simpleName.replace("Node", "")} ${info()}".trimEnd()
-
-    protected open fun info(): String = ""
-
-    companion object {
-        internal fun predecessorHash(node: Node, predecessor: Int): Int =
-            System.identityHashCode(node.predecessor(predecessor))
-    }
+    protected open fun info(): String? = null
 }

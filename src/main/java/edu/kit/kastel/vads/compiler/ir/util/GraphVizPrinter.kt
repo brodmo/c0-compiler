@@ -29,7 +29,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
                 .add(node)
         }
         var idx = 0
-        for (predecessor in node.predecessors()) {
+        for (predecessor in node.predecessors) {
             this.edges.add(Edge(predecessor, node, idx++))
             prepare(predecessor, seen)
         }

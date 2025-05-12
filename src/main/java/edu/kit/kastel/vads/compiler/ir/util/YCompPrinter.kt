@@ -2,7 +2,6 @@ package edu.kit.kastel.vads.compiler.ir.util
 
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.node.*
-import edu.kit.kastel.vads.compiler.ir.node.ProjNode.SimpleProjectionInfo
 import java.util.*
 
 class YCompPrinter(private val graph: IrGraph) {
@@ -23,7 +22,7 @@ class YCompPrinter(private val graph: IrGraph) {
             }.add(node)
         }
 
-        for (predecessor in node.predecessors()) {
+        for (predecessor in node.predecessors) {
             prepare(predecessor, seen)
         }
 
@@ -49,7 +48,7 @@ class YCompPrinter(private val graph: IrGraph) {
             """.trimMargin().replaceIndent("  ")
         )
 
-        for (color in VcgColor.values()) {
+        for (color in VcgColor.entries) {
             result.append("\n  colorentry ").append(color.id()).append(": ").append(color.rgb)
         }
 
@@ -114,12 +113,12 @@ class YCompPrinter(private val graph: IrGraph) {
     }
 
     private fun formatInputEdges(node: Node): String {
-        val edges = node.predecessors().indices.map { idx ->
+        val edges = node.predecessors.mapIndexed { index, predecessor ->
             Edge(
-                node.predecessor(idx),
+                predecessor,
                 node,
-                idx,
-                edgeColor(node.predecessor(idx), node)
+                index,
+                edgeColor(predecessor, node)
             )
         }
         return formatEdges(edges, "\n  priority: 50")
@@ -137,7 +136,7 @@ class YCompPrinter(private val graph: IrGraph) {
 
     private fun formatControlflowEdges(block: Block): String {
         val result = StringJoiner("\n")
-        val parents = block.predecessors()
+        val parents = block.predecessors
         for (parent in parents) {
             if (parent is ReturnNode) {
                 // Return needs no label
@@ -191,9 +190,9 @@ class YCompPrinter(private val graph: IrGraph) {
             is ConstIntNode -> VcgColor.NORMAL
             is Phi -> VcgColor.PHI
             is ProjNode -> {
-                if (node.projectionInfo == SimpleProjectionInfo.SIDE_EFFECT) {
+                if (node.projectionInfo == ProjectionInfo.SIDE_EFFECT) {
                     VcgColor.MEMORY
-                } else if (node.projectionInfo == SimpleProjectionInfo.RESULT) {
+                } else if (node.projectionInfo == ProjectionInfo.RESULT) {
                     VcgColor.NORMAL
                 } else {
                     VcgColor.NORMAL
