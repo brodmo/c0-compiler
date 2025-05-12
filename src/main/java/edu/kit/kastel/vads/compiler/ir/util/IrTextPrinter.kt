@@ -1,7 +1,7 @@
 package edu.kit.kastel.vads.compiler.ir.util
 
-import edu.kit.kastel.vads.compiler.backend.aasm.AasmRegisterAllocator
-import edu.kit.kastel.vads.compiler.backend.regalloc.Register
+import edu.kit.kastel.vads.compiler.backend.aasm.Register
+import edu.kit.kastel.vads.compiler.backend.aasm.VirtualRegister
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.node.AddNode
 import edu.kit.kastel.vads.compiler.ir.node.BinaryOperationNode
@@ -16,6 +16,39 @@ import edu.kit.kastel.vads.compiler.ir.node.ProjNode
 import edu.kit.kastel.vads.compiler.ir.node.ReturnNode
 import edu.kit.kastel.vads.compiler.ir.node.StartNode
 import edu.kit.kastel.vads.compiler.ir.node.SubNode
+
+
+import kotlin.collections.MutableMap
+import kotlin.collections.MutableSet
+
+class AasmRegisterAllocator {
+    private var id = 0
+    private val registers: MutableMap<Node, Register> = mutableMapOf()
+
+    fun allocateRegisters(graph: IrGraph): Map<Node, Register> {
+        val visited: MutableSet<Node> = mutableSetOf()
+        visited.add(graph.endBlock())
+        scan(graph.endBlock(), visited)
+        return registers.toMap()
+    }
+
+    private fun scan(node: Node, visited: MutableSet<Node>) {
+        for (predecessor in node.predecessors()) {
+            if (visited.add(predecessor)) {
+                scan(predecessor, visited)
+            }
+        }
+        if (needsRegister(node)) {
+            this.registers.put(node, VirtualRegister(this.id++))
+        }
+    }
+
+    companion object {
+        private fun needsRegister(node: Node): Boolean {
+            return !(node is ProjNode || node is StartNode || node is Block || node is ReturnNode)
+        }
+    }
+}
 
 class IrTextPrinter {
     fun generateCode(program: List<IrGraph>): String = buildString {
@@ -67,7 +100,7 @@ class IrTextPrinter {
 
             is ConstIntNode -> {
                 val register = registers[node]
-                builder.append("  $register = const ${node.value()}")
+                builder.append("  $register = const ${node.value}")
             }
 
             is Phi -> throw UnsupportedOperationException("phi")
