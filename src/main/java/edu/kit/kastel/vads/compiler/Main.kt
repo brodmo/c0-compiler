@@ -68,7 +68,7 @@ private fun lexAndParse(input: Path): ProgramTree {
 @Throws(IOException::class)
 private fun dumpGraph(graph: IrGraph, path: Path, key: String) {
     Files.writeString(
-        path.resolve(graph.name() + "-" + key + ".vcg"),
+        path.resolve(graph.name + "-" + key + ".vcg"),
         YCompPrinter.Companion.print(graph)
     )
 }

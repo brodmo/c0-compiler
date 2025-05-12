@@ -7,13 +7,13 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 
 /** The base class for all nodes. */
 sealed class Node {
-    private val graph: IrGraph
-    private val block: Block
+    val graph: IrGraph
+    val block: Block
     private val predecessors: MutableList<Node> = mutableListOf()
-    private val debugInfo: DebugInfo
+    val debugInfo: DebugInfo
 
     protected constructor(block: Block, vararg predecessors: Node) {
-        this.graph = block.graph()
+        this.graph = block.graph
         this.block = block
         this.predecessors.addAll(predecessors)
         for (predecessor in predecessors) {
@@ -27,14 +27,6 @@ sealed class Node {
         this.graph = graph
         this.block = this as Block
         this.debugInfo = NoInfo.INSTANCE
-    }
-
-    fun graph(): IrGraph {
-        return this.graph
-    }
-
-    fun block(): Block {
-        return this.block
     }
 
     fun predecessors(): MutableList<out Node> {
@@ -62,10 +54,6 @@ sealed class Node {
 
     protected open fun info(): String {
         return ""
-    }
-
-    fun debugInfo(): DebugInfo {
-        return debugInfo
     }
 
     companion object {

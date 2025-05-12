@@ -26,7 +26,7 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
     fun translate(): IrGraph {
         val visitor = SsaTranslationVisitor()
         this.function.accept(visitor, this)
-        return this.constructor.graph()
+        return this.constructor.graph
     }
 
     private fun writeVariable(variable: Name, block: Block, value: Node) {
@@ -38,7 +38,7 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
     }
 
     private fun currentBlock(): Block {
-        return this.constructor.currentBlock()
+        return this.constructor.currentBlock
     }
 
     private class SsaTranslationVisitor : Visitor<SsaTranslation, Node?> {
@@ -200,7 +200,7 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
             val node = returnTree.expression.accept(this, data)
                 ?: error("Return expression must produce a value")
             val ret = data.constructor.newReturn(node)
-            data.constructor.graph().endBlock().addPredecessor(ret)
+            data.constructor.graph.endBlock.addPredecessor(ret)
 
             popSpan()
             return null

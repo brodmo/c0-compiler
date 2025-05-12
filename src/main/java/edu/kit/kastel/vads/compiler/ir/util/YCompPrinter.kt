@@ -18,7 +18,7 @@ class YCompPrinter(private val graph: IrGraph) {
         }
 
         if (node !is Block) {
-            clusters.computeIfAbsent(node.block()) {
+            clusters.computeIfAbsent(node.block) {
                 Collections.newSetFromMap(mutableMapOf())
             }.add(node)
         }
@@ -27,8 +27,8 @@ class YCompPrinter(private val graph: IrGraph) {
             prepare(predecessor, seen)
         }
 
-        if (node == graph.endBlock()) {
-            clusters[graph.endBlock()] = mutableSetOf()
+        if (node == graph.endBlock) {
+            clusters[graph.endBlock] = mutableSetOf()
         }
     }
 
@@ -36,7 +36,7 @@ class YCompPrinter(private val graph: IrGraph) {
         val result = StringBuilder()
 
         result.append("graph: {")
-        val graphName = graph.name()
+        val graphName = graph.name
         result.append("\n  title: ").append('"').append(graphName).append('"').append("\n")
 
         result.append(
@@ -209,8 +209,8 @@ class YCompPrinter(private val graph: IrGraph) {
     private fun nodeTitle(node: Node): String {
         if (node is Block) {
             return when {
-                node == graph.startBlock() -> "start-block"
-                node == graph.endBlock() -> "end-block"
+                node == graph.startBlock -> "start-block"
+                node == graph.endBlock -> "end-block"
                 else -> "block-${idFor(node)}"
             }
         }
@@ -219,8 +219,8 @@ class YCompPrinter(private val graph: IrGraph) {
 
     private fun nodeLabel(node: Node): String {
         return when {
-            node == graph.startBlock() -> "start-block"
-            node == graph.endBlock() -> "end-block"
+            node == graph.startBlock -> "start-block"
+            node == graph.endBlock -> "end-block"
             else -> node.toString()
         }
     }
@@ -268,7 +268,7 @@ class YCompPrinter(private val graph: IrGraph) {
     companion object {
         fun print(graph: IrGraph): String {
             val printer = YCompPrinter(graph)
-            printer.prepare(graph.endBlock(), mutableSetOf())
+            printer.prepare(graph.endBlock, mutableSetOf())
             return printer.dumpGraphAsString()
         }
     }

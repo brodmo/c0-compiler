@@ -21,7 +21,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
         }
 
         if (node !is Block) {
-            this.clusters.computeIfAbsent(node.block(), Function { `_`: Block ->
+            this.clusters.computeIfAbsent(node.block, Function { `_`: Block ->
                 Collections.newSetFromMap<Node>(
                     mutableMapOf()
                 )
@@ -33,14 +33,14 @@ class GraphVizPrinter(private val graph: IrGraph) {
             this.edges.add(Edge(predecessor, node, idx++))
             prepare(predecessor, seen)
         }
-        if (node === this.graph.endBlock()) {
-            this.clusters.put(this.graph.endBlock(), mutableSetOf())
+        if (node === this.graph.endBlock) {
+            this.clusters.put(this.graph.endBlock, mutableSetOf())
         }
     }
 
     private fun print() {
         this.builder.append("digraph \"")
-            .append(this.graph.name())
+            .append(this.graph.name)
             .append("\"")
             .append(
                 """
@@ -63,7 +63,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
                 .repeat(" ", 8)
                 .append("c_").append(idFor(block))
                 .append(" [width=0, height=0, fixedsize=true, style=invis];\n")
-            if (block == this.graph.endBlock()) {
+            if (block == this.graph.endBlock) {
                 this.builder.repeat(" ", 8)
                     .append("label=End;\n")
             }
@@ -73,7 +73,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
                     .append(" [label=\"")
                     .append(labelFor(node))
                     .append("\"")
-                val debugInfo = node.debugInfo()
+                val debugInfo = node.debugInfo
                 if (debugInfo is DebugInfo.SourceInfo) {
                     this.builder.append(", tooltip=\"")
                         .append("source span: ")
@@ -132,7 +132,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
     companion object {
         fun print(graph: IrGraph): String {
             val printer = GraphVizPrinter(graph)
-            printer.prepare(graph.endBlock(), mutableSetOf())
+            printer.prepare(graph.endBlock, mutableSetOf())
             printer.print()
             return printer.builder.toString()
         }

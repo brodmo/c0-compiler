@@ -27,8 +27,8 @@ class AasmRegisterAllocator {
 
     fun allocateRegisters(graph: IrGraph): Map<Node, Register> {
         val visited: MutableSet<Node> = mutableSetOf()
-        visited.add(graph.endBlock())
-        scan(graph.endBlock(), visited)
+        visited.add(graph.endBlock)
+        scan(graph.endBlock, visited)
         return registers.toMap()
     }
 
@@ -56,7 +56,7 @@ class IrTextPrinter {
             val allocator = AasmRegisterAllocator()
             val registers = allocator.allocateRegisters(graph)
 
-            append("function ${graph.name()} {\n")
+            append("function ${graph.name} {\n")
             generateForGraph(graph, this, registers)
             append("}")
         }
@@ -68,7 +68,7 @@ class IrTextPrinter {
         registers: Map<Node, Register>
     ) {
         val visited = mutableSetOf<Node>()
-        scan(graph.endBlock(), visited, builder, registers)
+        scan(graph.endBlock, visited, builder, registers)
     }
 
     private fun scan(
