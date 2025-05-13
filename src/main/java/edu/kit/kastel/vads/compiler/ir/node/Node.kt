@@ -7,7 +7,7 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 sealed class Node(
     val graph: IrGraph,
     val block: Block?,
-    originalPredecessors: List<Node> = listOf()
+    originalPredecessors: List<Node>
 ) {
     // TODO add code generation method returning (Register (Up), List<Instructions> (Down))
     // TODO maybe just switch case in InstructionSelector
@@ -26,11 +26,13 @@ sealed class Node(
         }
     }
 
-    constructor(block: Block, predecessors: List<Node> = listOf()) : this(
+    constructor(block: Block, predecessors: List<Node>) : this(
         block.graph,
         block,
         predecessors
     )
+
+    abstract fun <T> accept(visitor: NodeVisitor<T>): T
 
     open fun skipProj(): Node = this
 

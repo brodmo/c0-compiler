@@ -22,6 +22,8 @@ open class BinaryOperationNode(
         }
     }
 
+    override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
+
     override fun equals(other: Any?): Boolean {
         return when {
             other !is BinaryOperationNode || operator != other.operator -> false
