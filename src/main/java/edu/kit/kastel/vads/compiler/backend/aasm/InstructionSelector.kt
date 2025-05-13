@@ -19,21 +19,30 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (leftUp, leftDown) = node.left.accept(this)
         val (rightUp, rightDown) = node.right.accept(this)
         val (_, sideEffectDown) = node.sideEffect?.accept(this) ?: (null to emptyList())
-        val up = when (node.operator) {
-            BinaryOperator.DIVIDE, BinaryOperator.MODULO -> RealRegister.EAX
-            else -> VirtualRegister(registerId++)
-        }
+        val up = VirtualRegister(registerId++)
         val name = when (node.operator) {
             BinaryOperator.ADD -> Name.ADDL
             BinaryOperator.SUBTRACT -> Name.SUBL
             BinaryOperator.MULTIPLY -> Name.IMULL
             BinaryOperator.DIVIDE, BinaryOperator.MODULO -> Name.IDIVL
         }
-        val down = leftDown + rightDown + sideEffectDown + listOf(
-            Instruction(Name.MOVL, leftUp!!, up),
-            Instruction(name, rightUp!!, up)
-        )
-        up to down
+        val opDown = when (name) {
+            Name.IDIVL -> {
+                val resultRegister = if (node.operator == BinaryOperator.DIVIDE) RealRegister.EAX else RealRegister.EDX
+                listOf(
+                    Instruction(Name.MOVL, leftUp!!, RealRegister.EAX),
+                    Instruction(Name.CLTD),
+                    Instruction(Name.IDIVL, rightUp!!),
+                    Instruction(Name.MOVL, resultRegister, up)
+                )
+            }
+
+            else -> listOf(
+                Instruction(Name.MOVL, leftUp!!, up),
+                Instruction(name, rightUp!!, up),
+            )
+        }
+        up to leftDown + rightDown + sideEffectDown + opDown
     }
 
     override fun visit(node: ConstIntNode): UpDown = rememberUps(node) { Immediate(node.value) to emptyList() }
