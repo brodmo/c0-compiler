@@ -2,7 +2,7 @@ package edu.kit.kastel.vads.compiler.ir.node
 
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 
-sealed class OrderNode(graph: IrGraph, block: Block?) : Node(graph, block, emptyList()) {
+sealed class BlockNode(graph: IrGraph, block: Block?) : Node(graph, block, emptyList()) {
     override val predecessors: MutableList<Node> = super.predecessors.toMutableList()
     fun addPredecessor(node: Node) {
         predecessors.add(node)
@@ -10,10 +10,10 @@ sealed class OrderNode(graph: IrGraph, block: Block?) : Node(graph, block, empty
     }
 }
 
-class Block(graph: IrGraph) : OrderNode(graph, null) {
+class Block(graph: IrGraph) : BlockNode(graph, null) {
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 }
 
-class Phi(block: Block) : OrderNode(block.graph, block) {
+class Phi(block: Block) : BlockNode(block.graph, block) {
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 }
