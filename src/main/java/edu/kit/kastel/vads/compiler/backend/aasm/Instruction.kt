@@ -36,6 +36,6 @@ class Instruction(
 ) {
     override fun toString(): String {
         val ops = operands.joinToString(", ") { it.toString() }
-        return "${name.name} $ops"
+        return "${name.name.lowercase()} $ops"
     }
 }
