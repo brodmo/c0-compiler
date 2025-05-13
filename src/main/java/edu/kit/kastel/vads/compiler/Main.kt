@@ -1,5 +1,6 @@
 package edu.kit.kastel.vads.compiler
 
+import edu.kit.kastel.vads.compiler.backend.aasm.InstructionSelector
 import edu.kit.kastel.vads.compiler.ir.util.IrTextPrinter
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation
@@ -47,8 +48,9 @@ fun main(args: Array<String>) {
     }
 
     // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-    val s = IrTextPrinter().generateCode(graphs)
-    Files.writeString(output, s)
+    val instructionSelector = InstructionSelector()
+    val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
+    Files.writeString(output, instructions.joinToString("\n"))
 }
 
 @Throws(IOException::class)

@@ -1,6 +1,6 @@
 package edu.kit.kastel.vads.compiler.backend.aasm
 
-enum class Mnemonic {
+enum class Name {
     MOVL,
     ADDL, SUBL,
     IMULL, IDIVL, // Integer = signed variant
@@ -31,11 +31,11 @@ enum class RealRegister : Register {
 }
 
 class Instruction(
-    val mnemonic: Mnemonic,
+    val name: Name,
     vararg val operands: Operand
 ) {
     override fun toString(): String {
         val ops = operands.joinToString(", ") { it.toString() }
-        return "${mnemonic.name} $ops"
+        return "${name.name} $ops"
     }
 }
