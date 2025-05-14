@@ -33,10 +33,26 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
         optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.MULTIPLY, left, right))
 
     fun newDiv(left: Node, right: Node): Node =
-        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.DIVIDE, left, right, readCurrentSideEffect()))
+        optimizer.transform(
+            BinaryOperationNode(
+                currentBlock,
+                BinaryOperator.DIVIDE,
+                left,
+                right,
+                readCurrentSideEffect()
+            )
+        )
 
     fun newMod(left: Node, right: Node): Node =
-        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.MODULO, left, right, readCurrentSideEffect()))
+        optimizer.transform(
+            BinaryOperationNode(
+                currentBlock,
+                BinaryOperator.MODULO,
+                left,
+                right,
+                readCurrentSideEffect()
+            )
+        )
 
     fun newReturn(result: Node): Node =
         ReturnNode(currentBlock, readCurrentSideEffect(), result)

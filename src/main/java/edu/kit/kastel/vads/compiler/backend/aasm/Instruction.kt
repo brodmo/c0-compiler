@@ -12,6 +12,7 @@ sealed interface Operand
 data class Immediate(val value: Int) : Operand {
     override fun toString(): String = "$$value"
 }
+
 data class Memory(val address: String) : Operand {
     override fun toString(): String = address
 }
@@ -27,6 +28,7 @@ enum class RealRegister : Register {
     ESP, EBP,
     ESI, EDI
     ;
+
     override fun toString() = "%${name.lowercase()}"
 }
 

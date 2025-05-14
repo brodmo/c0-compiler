@@ -1,20 +1,10 @@
 package edu.kit.kastel.vads.compiler.ir.util
 
+
 import edu.kit.kastel.vads.compiler.backend.aasm.Register
 import edu.kit.kastel.vads.compiler.backend.aasm.VirtualRegister
 import edu.kit.kastel.vads.compiler.ir.IrGraph
-import edu.kit.kastel.vads.compiler.ir.node.BinaryOperationNode
-import edu.kit.kastel.vads.compiler.ir.node.Block
-import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode
-import edu.kit.kastel.vads.compiler.ir.node.Node
-import edu.kit.kastel.vads.compiler.ir.node.Phi
-import edu.kit.kastel.vads.compiler.ir.node.ProjNode
-import edu.kit.kastel.vads.compiler.ir.node.ReturnNode
-import edu.kit.kastel.vads.compiler.ir.node.StartNode
-
-
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
+import edu.kit.kastel.vads.compiler.ir.node.*
 
 class AasmRegisterAllocator {
     private var id = 0

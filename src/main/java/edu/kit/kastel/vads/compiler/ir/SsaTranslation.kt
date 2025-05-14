@@ -216,7 +216,8 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
             if (divMod !is BinaryOperationNode || divMod.operator !in setOf(
                     BinaryOperator.DIVIDE,
                     BinaryOperator.MODULO,
-                )) {
+                )
+            ) {
                 return divMod
             }
             val projSideEffect = data.constructor.newSideEffectProj(divMod)

@@ -5,7 +5,7 @@ class StartNode(block: Block) : Node(block, emptyList()) {
 }
 
 class ReturnNode(block: Block, val sideEffect: Node, val result: Node) : Node(block, listOf(sideEffect, result)) {
-        override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
+    override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 }
 
 class ProjNode(block: Block, val pred: Node, val projectionInfo: ProjectionInfo) : Node(block, listOf(pred)) {

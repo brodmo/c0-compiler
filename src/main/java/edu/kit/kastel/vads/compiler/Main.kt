@@ -17,7 +17,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 const val PREAMBLE =
-""".global main
+    """.global main
 .global _main
 .text
 
