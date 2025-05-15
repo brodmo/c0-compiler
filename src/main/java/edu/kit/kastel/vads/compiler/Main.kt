@@ -1,6 +1,6 @@
 package edu.kit.kastel.vads.compiler
 
-import edu.kit.kastel.vads.compiler.backend.aasm.InstructionSelector
+import edu.kit.kastel.vads.compiler.backend.InstructionSelector
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering

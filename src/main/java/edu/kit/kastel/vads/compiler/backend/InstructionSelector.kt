@@ -1,4 +1,4 @@
-package edu.kit.kastel.vads.compiler.backend.aasm
+package edu.kit.kastel.vads.compiler.backend
 
 import edu.kit.kastel.vads.compiler.ir.node.*
 

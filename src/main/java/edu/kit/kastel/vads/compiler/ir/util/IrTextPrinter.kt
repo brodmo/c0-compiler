@@ -1,8 +1,8 @@
 package edu.kit.kastel.vads.compiler.ir.util
 
 
-import edu.kit.kastel.vads.compiler.backend.aasm.Register
-import edu.kit.kastel.vads.compiler.backend.aasm.VirtualRegister
+import edu.kit.kastel.vads.compiler.backend.Register
+import edu.kit.kastel.vads.compiler.backend.VirtualRegister
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.node.*
 
