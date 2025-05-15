@@ -16,6 +16,7 @@ import edu.kit.kastel.vads.compiler.semantic.SemanticException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.moveTo
 
 const val PREAMBLE =
     """.global main
@@ -33,6 +34,17 @@ _main:
 
 val onArm = System.getProperty("os.arch") in listOf("arm64", "aarch64")
 val commandPrefix = if (onArm) "./x86_run.sh" else null
+
+fun wrapCommand(command: String): String {
+    return if (onArm) {
+        """
+            #!/bin/bash
+            docker run --platform linux/amd64 --rm -v "$(pwd)":/work -w /work gcc:latest "$command $@"
+        """.trimIndent()
+    } else {
+        command
+    }
+}
 
 @Throws(IOException::class)
 fun main(args: Array<String>) {
@@ -68,12 +80,34 @@ fun main(args: Array<String>) {
     val instructionSelector = InstructionSelector()
     val registerAllocator = RegisterAllocator()
     val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
-    val mainLines =  registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
+    val mainLines = registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
     val tempFile = output.resolveSibling("temp.s")
     Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
-    val command = listOfNotNull(commandPrefix, "gcc", tempFile.toString(), "-o", output.toString())
-    ProcessBuilder(command).start().waitFor()
+    ProcessBuilder(wrapCommand(output.parent, "gcc",  tempFile.toString(), "-o", output.toString())).start().waitFor()
+    if (onArm) {
+        val armOutput = output.resolveSibling("${output.fileName}-arm")
+        output.moveTo(armOutput, overwrite = true)
+        Files.writeString(
+            output, """
+            #!/bin/sh
+            ${wrapCommand(armOutput.parent, "/work/${armOutput.fileName}", "\"$@\"").joinToString(" ")}
+        """.trimIndent()
+        )
+        ProcessBuilder("chmod", "+x", armOutput.toString()).start().waitFor()
+    }
+    ProcessBuilder("chmod", "+x", output.toString()).start().waitFor()
 }
+
+private fun wrapCommand(dir: Path, vararg args: String): List<String> = listOf(
+        "docker",
+        "run",
+        "--platform", "linux/amd64",
+        "--rm",
+        "-v", "\"$dir\":/work",
+        "-w", "/work",
+        "gcc:latest",
+        *args
+    )
 
 @Throws(IOException::class)
 private fun lexAndParse(input: Path): ProgramTree {
