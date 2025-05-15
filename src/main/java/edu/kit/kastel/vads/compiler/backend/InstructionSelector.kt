@@ -6,7 +6,7 @@ typealias UpDown = Pair<Operand?, List<Instruction>>
 
 class InstructionSelector : NodeVisitor<UpDown> {
     val knownUps = mutableMapOf<Node, Operand?>()
-    var registerId = 0
+    val registerProducer = generateSequence(1) { it + 1 }.map { VirtualRegister(it) }.iterator()
 
     private fun rememberUps(node: Node, function: () -> UpDown): UpDown {
         knownUps[node]?.let { return it to emptyList() }
@@ -19,7 +19,7 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (leftUp, leftDown) = node.left.accept(this)
         val (rightUp, rightDown) = node.right.accept(this)
         val (_, sideEffectDown) = node.sideEffect?.accept(this) ?: (null to emptyList())
-        val up = VirtualRegister(registerId++)
+        val up = registerProducer.next()
         val name = when (node.operator) {
             BinaryOperator.ADD -> Name.ADDL
             BinaryOperator.SUBTRACT -> Name.SUBL
@@ -29,10 +29,12 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val opDown = when (name) {
             Name.IDIVL -> {
                 val resultRegister = if (node.operator == BinaryOperator.DIVIDE) GeneralRegisters.EAX else GeneralRegisters.EDX
+                val opRegister = registerProducer.next()
                 listOf(
                     Instruction(Name.MOVL, leftUp!!, GeneralRegisters.EAX),
                     Instruction(Name.CLTD),
-                    Instruction(Name.IDIVL, rightUp!!),
+                    Instruction(Name.MOVL, rightUp!!, opRegister),
+                    Instruction(Name.IDIVL, opRegister),
                     Instruction(Name.MOVL, resultRegister, up)
                 )
             }
@@ -53,7 +55,8 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (resultUp, resultDown) = node.result.accept(this)
         val (_, sideEffectDown) = node.sideEffect.accept(this)
         val down = sideEffectDown + resultDown + listOf(
-            Instruction(Name.MOVL, resultUp!!, GeneralRegisters.EAX)
+            Instruction(Name.MOVL, resultUp!!, GeneralRegisters.EAX),
+            Instruction(Name.RET)
         )
         GeneralRegisters.EAX to down
     }

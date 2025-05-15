@@ -2,6 +2,7 @@ package edu.kit.kastel.vads.compiler.backend
 
 enum class Name {
     MOVL,
+    RET,
     ADDL, SUBL,
     IMULL, IDIVL, // Integer = signed variant
     CLTD, // Convert Long To Double
@@ -38,16 +39,22 @@ enum class GeneralRegisters : RealRegister {
 }
 
 enum class PointerRegisters : RealRegister {
-    EBP, ESP;
+    RBP, RSP;
 
     override fun emit() = "%${name.lowercase()}"
 }
 
 
-class Instruction(
+data class SpilledRegister(val offset: Int) : RealRegister {
+    override fun emit() = "$offset(${PointerRegisters.RBP.emit()})"
+}
+
+
+data class Instruction(
     val name: Name,
-    vararg val operands: Operand
+    val operands: List<Operand> = emptyList(),
 ) {
+    constructor(name: Name, vararg operands: Operand) : this(name, operands.toList())
     fun emit(): String {
         val ops = operands.joinToString(", ") { it.emit() }
         return "${name.name.lowercase()} $ops"

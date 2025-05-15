@@ -1,6 +1,7 @@
 package edu.kit.kastel.vads.compiler
 
 import edu.kit.kastel.vads.compiler.backend.InstructionSelector
+import edu.kit.kastel.vads.compiler.backend.RegisterAllocator
 import edu.kit.kastel.vads.compiler.ir.IrGraph
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering
@@ -62,8 +63,10 @@ fun main(args: Array<String>) {
 
     // TODO: generate assembly and invoke gcc instead of generating abstract assembly
     val instructionSelector = InstructionSelector()
+    val registerAllocator = RegisterAllocator()
     val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
-    Files.writeString(output, PREAMBLE + instructions.joinToString("\n") { it.emit() })
+    val mainLines =  registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
+    Files.writeString(output, PREAMBLE + mainLines.joinToString("\n"))
 }
 
 @Throws(IOException::class)
