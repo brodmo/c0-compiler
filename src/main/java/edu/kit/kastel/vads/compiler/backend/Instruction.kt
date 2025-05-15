@@ -8,36 +8,48 @@ enum class Name {
     CLTQ, // Convert Long To Quad
 }
 
-sealed interface Operand
+sealed interface Operand {
+    fun emit(): String
+}
+
 data class Immediate(val value: Int) : Operand {
-    override fun toString(): String = "$$value"
+    override fun emit(): String = "$$value"
 }
 
 data class Memory(val address: String) : Operand {
-    override fun toString(): String = address
+    override fun emit(): String = address
 }
 
 sealed interface Register : Operand
 
 data class VirtualRegister(val id: Int) : Register {
-    override fun toString() = "%t$id"
+    override fun emit() = "%t$id"
 }
 
-enum class RealRegister : Register {
+sealed interface RealRegister : Register
+
+enum class GeneralRegisters : RealRegister {
     EAX, EBX, ECX, EDX,
-    ESP, EBP,
-    ESI, EDI
+    ESI, EDI,
+    R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
     ;
 
-    override fun toString() = "%${name.lowercase()}"
+    override fun emit() = "%${name.lowercase()}"
 }
+
+enum class PointerRegisters : RealRegister {
+    EBP, ESP;
+
+    override fun emit() = "%${name.lowercase()}"
+}
+
 
 class Instruction(
     val name: Name,
     vararg val operands: Operand
 ) {
-    override fun toString(): String {
-        val ops = operands.joinToString(", ") { it.toString() }
+    fun emit(): String {
+        val ops = operands.joinToString(", ") { it.emit() }
         return "${name.name.lowercase()} $ops"
     }
 }

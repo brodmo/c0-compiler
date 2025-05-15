@@ -8,9 +8,9 @@ class InstructionSelector : NodeVisitor<UpDown> {
     val knownUps = mutableMapOf<Node, Operand?>()
     var registerId = 0
 
-    private fun rememberUps(node: Node, function: (Node) -> UpDown): UpDown {
+    private fun rememberUps(node: Node, function: () -> UpDown): UpDown {
         knownUps[node]?.let { return it to emptyList() }
-        val (up, down) = function(node)
+        val (up, down) = function()
         knownUps[node] = up
         return up to down
     }
@@ -28,9 +28,9 @@ class InstructionSelector : NodeVisitor<UpDown> {
         }
         val opDown = when (name) {
             Name.IDIVL -> {
-                val resultRegister = if (node.operator == BinaryOperator.DIVIDE) RealRegister.EAX else RealRegister.EDX
+                val resultRegister = if (node.operator == BinaryOperator.DIVIDE) GeneralRegisters.EAX else GeneralRegisters.EDX
                 listOf(
-                    Instruction(Name.MOVL, leftUp!!, RealRegister.EAX),
+                    Instruction(Name.MOVL, leftUp!!, GeneralRegisters.EAX),
                     Instruction(Name.CLTD),
                     Instruction(Name.IDIVL, rightUp!!),
                     Instruction(Name.MOVL, resultRegister, up)
@@ -53,9 +53,9 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (resultUp, resultDown) = node.result.accept(this)
         val (_, sideEffectDown) = node.sideEffect.accept(this)
         val down = sideEffectDown + resultDown + listOf(
-            Instruction(Name.MOVL, resultUp!!, RealRegister.EAX)
+            Instruction(Name.MOVL, resultUp!!, GeneralRegisters.EAX)
         )
-        RealRegister.EAX to down
+        GeneralRegisters.EAX to down
     }
 
     override fun visit(node: ProjNode): UpDown = rememberUps(node) { node.pred.accept(this) }

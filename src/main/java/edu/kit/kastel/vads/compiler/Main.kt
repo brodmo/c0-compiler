@@ -63,7 +63,7 @@ fun main(args: Array<String>) {
     // TODO: generate assembly and invoke gcc instead of generating abstract assembly
     val instructionSelector = InstructionSelector()
     val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
-    Files.writeString(output, PREAMBLE + instructions.joinToString("\n"))
+    Files.writeString(output, PREAMBLE + instructions.joinToString("\n") { it.emit() })
 }
 
 @Throws(IOException::class)
