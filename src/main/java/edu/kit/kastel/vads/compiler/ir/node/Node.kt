@@ -9,21 +9,13 @@ sealed class Node(
     val block: Block?,
     originalPredecessors: List<Node>
 ) {
-    // TODO add code generation method returning (Register (Up), List<Instructions> (Down))
-    // TODO maybe just switch case in InstructionSelector
-    // TODO don't pass target register, optimizing register usage is part of register allocation
-    val successors: MutableList<Node> = mutableListOf()
     open val predecessors: List<Node> = originalPredecessors
+    val successors: MutableList<Node> = mutableListOf()
     val safeBlock: Block = block ?: this as Block
     val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
 
     init {
-        // The only possible causes of an NPE in Kotlin are: [...]
-        // - A superclass constructor calling an open member whose implementation in the derived class uses an uninitialized state.
-        // Hence we cannot declare predecessors open
-        originalPredecessors.forEach { predecessor ->
-            predecessor.successors.add(this)
-        }
+        originalPredecessors.forEach { it.successors.add(this) }
     }
 
     constructor(block: Block, predecessors: List<Node>) : this(
