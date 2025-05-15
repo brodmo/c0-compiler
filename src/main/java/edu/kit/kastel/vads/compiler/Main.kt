@@ -83,24 +83,31 @@ fun main(args: Array<String>) {
     val mainLines = registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
     val tempFile = output.resolveSibling("temp.s")
     Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
-    val command = listOfNotNull(commandPrefix, "gcc", tempFile.toString(), "-o", output.toString())
-    ProcessBuilder(command).start().waitFor()
+    ProcessBuilder(wrapCommand(output.parent, "gcc",  tempFile.toString(), "-o", output.toString())).start().waitFor()
     if (onArm) {
         val armOutput = output.resolveSibling("${output.fileName}-arm")
         output.moveTo(armOutput, overwrite = true)
-        val armDir = armOutput.parent.toAbsolutePath().toString()
-        val armBin = armOutput.fileName.toString()
-        val scriptFile = output.resolveSibling("${output.fileName}.sh")
         Files.writeString(
             output, """
             #!/bin/sh
-            docker run --platform linux/amd64 --rm -v "$armDir":/work -w /work gcc:latest "/work/$armBin" "$@"
+            ${wrapCommand(armOutput.parent, "/work/${armOutput.fileName}", "\"$@\"").joinToString(" ")}
         """.trimIndent()
         )
         ProcessBuilder("chmod", "+x", armOutput.toString()).start().waitFor()
     }
     ProcessBuilder("chmod", "+x", output.toString()).start().waitFor()
 }
+
+private fun wrapCommand(dir: Path, vararg args: String): List<String> = listOf(
+        "docker",
+        "run",
+        "--platform", "linux/amd64",
+        "--rm",
+        "-v", "\"$dir\":/work",
+        "-w", "/work",
+        "gcc:latest",
+        *args
+    )
 
 @Throws(IOException::class)
 private fun lexAndParse(input: Path): ProgramTree {
