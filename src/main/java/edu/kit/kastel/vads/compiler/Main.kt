@@ -83,14 +83,15 @@ fun main(args: Array<String>) {
     val mainLines = registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
     val tempFile = output.resolveSibling("temp.s")
     Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
-    ProcessBuilder(wrapCommand(output.parent, "gcc",  tempFile.toString(), "-o", output.toString())).start().waitFor()
+    val dir = output.parent.toAbsolutePath()
+    ProcessBuilder(wrapCommand(dir, "gcc",  tempFile.toString(), "-o", output.toString())).start().waitFor()
     if (onArm) {
         val armOutput = output.resolveSibling("${output.fileName}-arm")
         output.moveTo(armOutput, overwrite = true)
         Files.writeString(
             output, """
             #!/bin/sh
-            ${wrapCommand(armOutput.parent, "/work/${armOutput.fileName}", "\"$@\"").joinToString(" ")}
+            ${wrapCommand(dir, "/work/${armOutput.fileName}", "\"$@\"").joinToString(" ")}
         """.trimIndent()
         )
         ProcessBuilder("chmod", "+x", armOutput.toString()).start().waitFor()
