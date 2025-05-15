@@ -31,6 +31,9 @@ syscall
 _main:
 """
 
+val onArm = System.getProperty("os.arch") in listOf("arm64", "aarch64")
+val commandPrefix = if (onArm) "./x86_run.sh" else null
+
 @Throws(IOException::class)
 fun main(args: Array<String>) {
     if (args.size != 2) {
@@ -66,7 +69,10 @@ fun main(args: Array<String>) {
     val registerAllocator = RegisterAllocator()
     val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
     val mainLines =  registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
-    Files.writeString(output, PREAMBLE + mainLines.joinToString("\n"))
+    val tempFile = output.resolveSibling("temp.s")
+    Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
+    val command = listOfNotNull(commandPrefix, "gcc", tempFile.toString(), "-o", output.toString())
+    ProcessBuilder(command).start().waitFor()
 }
 
 @Throws(IOException::class)
