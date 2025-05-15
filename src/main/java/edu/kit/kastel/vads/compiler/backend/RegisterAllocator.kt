@@ -18,7 +18,10 @@ class RegisterAllocator {
     }
 
     private fun produceRegisters(): Iterator<RealRegister> = sequence {
-        GeneralRegisters.entries.forEach { yield(it) }
-        generateSequence(0) { it + 4 }.forEach { yield(SpilledRegister(it)) }
+        GeneralRegisters.entries
+            .filter { it !in listOf(GeneralRegisters.EAX, GeneralRegisters.EDX) }
+            .forEach { yield(it) }
+        generateSequence(0) { it + 4 }
+            .forEach { yield(SpilledRegister(it)) }
     }.iterator()
 }
