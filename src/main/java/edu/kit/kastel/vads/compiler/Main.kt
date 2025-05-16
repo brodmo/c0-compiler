@@ -13,102 +13,124 @@ import edu.kit.kastel.vads.compiler.parser.TokenSource
 import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree
 import edu.kit.kastel.vads.compiler.semantic.SemanticAnalysis
 import edu.kit.kastel.vads.compiler.semantic.SemanticException
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.moveTo
+import kotlin.system.exitProcess
 
-const val PREAMBLE =
-    """.global main
-.global _main
-.text
+const val DUMP_GRAPHS = false
 
-main:
-call _main
-movq %rax, %rdi
-movq $0x3C, %rax
-syscall
+val PREAMBLE = """
+    .global main
+    .global _main
+    .text
+    
+    main:
+    call _main
+    movq %rax, %rdi
+    movq $0x3C, %rax
+    syscall
+    
+    _main:
+""".trimIndent()
 
-_main:
-"""
+val ON_ARM = System.getProperty("os.arch") in listOf("arm64", "aarch64")
 
-val onArm = System.getProperty("os.arch") in listOf("arm64", "aarch64")
-val commandPrefix = if (onArm) listOf("arch", "-x86_64") else emptyList()
-
-@Throws(IOException::class)
 fun main(args: Array<String>) {
-    if (args.size != 2) {
-        System.err.println("Invalid arguments: Expected one input file and one output file")
-        System.exit(3)
+    val (source, executable) = parseArgs(args)
+    val program = parseSourceFile(source)
+    analyzeSemantics(program)
+    val graphs = generateIrGraphs(program)
+    if (DUMP_GRAPHS) {
+        dumpGraphsToFiles(graphs, executable, "before-codegen")
     }
-    val input = Path.of(args[0])
-    val output = Path.of(args[1])
-    val program = lexAndParse(input)
-    try {
-        SemanticAnalysis(program).analyze()
-    } catch (e: SemanticException) {
-        e.printStackTrace()
-        System.exit(7)
-        return
-    }
-    val graphs: MutableList<IrGraph> = ArrayList<IrGraph>()
-    for (function in program.topLevelTrees) {
-        val translation = SsaTranslation(function, LocalValueNumbering())
-        graphs.add(translation.translate())
-    }
-
-    val dumpGraphs = false
-    if (dumpGraphs) {
-        val tmp = output.toAbsolutePath().resolveSibling("graphs")
-        for (graph in graphs) {
-            dumpGraph(graph, tmp, "before-codegen")
-        }
-    }
-
-    // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-    val instructionSelector = InstructionSelector()
-    val registerAllocator = RegisterAllocator()
-    val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
-    val mainLines =  registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
-    val tempFile = output.resolveSibling("temp.s")
-    Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
-    val command = commandPrefix + listOf("gcc", tempFile.toString(), "-o", output.toString())
-    val process = ProcessBuilder(command).redirectErrorStream(true).start()
-    val exitCode = process.waitFor()
-    if (exitCode != 0) {
-        System.err.println("Compilation failed with exit code $exitCode")
-        System.err.println("Output: ${process.inputStream.bufferedReader().readText()}")
-        System.exit(1)
-    }
-    if (onArm) {
-        val bin = output.resolveSibling("bin")
-        output.moveTo(bin, overwrite = true)
-        Files.writeString(output, """
-            #!/bin/bash
-            exec ${commandPrefix.joinToString(" ")} ${bin.toAbsolutePath()}
-        """.trimIndent())
-        output.toFile().setExecutable(true)
-    }
+    val assembly = executable.resolveSibling("asm.s")
+    generateAssembly(graphs, assembly)
+    compileAssembly(assembly, executable)
 }
 
-@Throws(IOException::class)
-private fun lexAndParse(input: Path): ProgramTree {
+fun parseArgs(args: Array<String>): Pair<Path, Path> {
+    if (args.size != 2) {
+        System.err.println("Invalid arguments: Expected one source file and one executable file")
+        exitProcess(3)
+    }
+    return Path.of(args[0]) to Path.of(args[1])
+}
+
+private fun parseSourceFile(source: Path): ProgramTree {
     try {
-        val lexer: Lexer = Lexer.Companion.forString(Files.readString(input))
+        val lexer = Lexer.forString(Files.readString(source))
         val tokenSource = TokenSource(lexer)
         val parser = Parser(tokenSource)
         return parser.parseProgram()
     } catch (e: ParseException) {
         e.printStackTrace()
-        System.exit(42)
-        throw AssertionError("unreachable")
+        exitProcess(42)
     }
 }
 
-@Throws(IOException::class)
-private fun dumpGraph(graph: IrGraph, path: Path, key: String) {
-    Files.writeString(
-        path.resolve(graph.name + "-" + key + ".vcg"),
-        YCompPrinter.Companion.print(graph)
-    )
+private fun analyzeSemantics(program: ProgramTree) {
+    try {
+        SemanticAnalysis(program).analyze()
+    } catch (e: SemanticException) {
+        e.printStackTrace()
+        exitProcess(7)
+    }
+}
+
+private fun generateIrGraphs(program: ProgramTree): List<IrGraph> {
+    return program.topLevelTrees.map { function ->
+        SsaTranslation(function, LocalValueNumbering()).translate()
+    }
+}
+
+private fun dumpGraphsToFiles(graphs: List<IrGraph>, executable: Path, key: String) {
+    val graphsDir = executable.toAbsolutePath().resolveSibling("graphs")
+    graphs.forEach { graph ->
+        Files.writeString(
+            graphsDir.resolve("${graph.name}-$key.vcg"),
+            YCompPrinter.print(graph)
+        )
+    }
+}
+
+private fun generateAssembly(graphs: List<IrGraph>, assembly: Path) {
+    val instructionSelector = InstructionSelector()
+    val registerAllocator = RegisterAllocator()
+    val (_, instructions) = graphs[0].endBlock.accept(instructionSelector)
+    val mainLines = registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
+    Files.writeString(assembly, "$PREAMBLE\n${mainLines.joinToString("\n")}")
+}
+
+private fun compileAssembly(assembly: Path, executable: Path) {
+    val commandPrefix = if (ON_ARM) listOf("arch", "-x86_64") else emptyList()
+    val command = listOf("gcc", assembly.toString(), "-o", executable.toString())
+    runCommand(commandPrefix + command)
+    if (ON_ARM) {
+        armWrapAssembly(executable)
+    }
+}
+
+private fun runCommand(command: List<String>) {
+    val process = ProcessBuilder(command)
+        .redirectErrorStream(true)
+        .start()
+    val exitCode = process.waitFor()
+    if (exitCode != 0) {
+        val stdout = process.inputStream.bufferedReader().readText()
+        System.err.println("Command failed with exit code $exitCode")
+        System.err.println("Output: $stdout")
+        exitProcess(exitCode)
+    }
+}
+
+private fun armWrapAssembly(executable: Path) {
+    val x86binary = executable.resolveSibling("x86bin")
+    executable.moveTo(x86binary, overwrite = true)
+    val wrapperScript = """
+        #!/bin/bash
+        exec arch -x86_64 ${x86binary.toAbsolutePath()}
+    """.trimIndent()
+    Files.writeString(executable, wrapperScript)
+    executable.toFile().setExecutable(true)
 }
