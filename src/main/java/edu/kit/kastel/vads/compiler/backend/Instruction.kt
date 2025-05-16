@@ -52,7 +52,7 @@ data class SpilledRegister(val offset: Int) : RealRegister {
 
 data class Instruction(
     val name: Name,
-    val operands: List<Operand> = emptyList(),
+    val operands: List<Operand>
 ) {
     constructor(name: Name, vararg operands: Operand) : this(name, operands.toList())
     fun emit(): String {

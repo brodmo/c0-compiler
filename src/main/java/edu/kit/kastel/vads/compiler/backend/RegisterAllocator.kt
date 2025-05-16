@@ -1,11 +1,13 @@
 package edu.kit.kastel.vads.compiler.backend
 
+val TEMP_REG = GeneralRegisters.ECX
+
 class RegisterAllocator {
 
     fun allocate(instructions: List<Instruction>): List<Instruction> {
         val registers = mapRegisters(instructions)
         val result = instructions.map { inst -> inst.copy(operands = inst.operands.map { registers[it] ?: it }) }
-        return postProcess(result)
+        return eliminateMemToMemInstructions(result)
     }
 
     private fun mapRegisters(instructions: List<Instruction>): Map<VirtualRegister, RealRegister> {
@@ -25,13 +27,13 @@ class RegisterAllocator {
             .forEach { yield(SpilledRegister(it)) }
     }.iterator()
 
-    private fun postProcess(instructions: List<Instruction>): List<Instruction> {
+    private fun eliminateMemToMemInstructions(instructions: List<Instruction>): List<Instruction> {
         return instructions.flatMap { inst -> when {
             inst.operands.filterIsInstance<SpilledRegister>().size == 2 -> {
                 val (src, dst) = inst.operands
                 listOf(
-                    Instruction(Name.MOVL, src, GeneralRegisters.EAX),
-                    Instruction(inst.name, GeneralRegisters.EAX, dst),
+                    Instruction(Name.MOVL, src, TEMP_REG),
+                    Instruction(inst.name, TEMP_REG, dst),
                 )
             }
             else -> listOf(inst)
