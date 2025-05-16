@@ -56,6 +56,7 @@ data class Instruction(
     val operands: List<Operand>
 ) {
     constructor(name: Name, vararg operands: Operand) : this(name, operands.toList())
+
     fun emit(): String {
         val ops = operands.joinToString(", ") { it.emit() }
         return "${name.name.lowercase()} $ops"
