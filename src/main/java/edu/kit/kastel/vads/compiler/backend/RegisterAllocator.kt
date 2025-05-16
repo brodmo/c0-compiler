@@ -7,25 +7,20 @@ class RegisterAllocator {
     fun allocate(instructions: List<Instruction>): List<Instruction> {
         val registers = mapRegisters(instructions)
         val result = instructions.map { inst -> inst.copy(operands = inst.operands.map { registers[it] ?: it }) }
-        return wrapFunction(eliminateMemToMemInstructions(result))
+        return addProlog(eliminateMemToMemInstructions(result))
     }
 
-    private fun wrapFunction(instructions: List<Instruction>): List<Instruction> {
+    private fun addProlog(instructions: List<Instruction>): List<Instruction> {
         val stackSize = instructions
             .flatMap { it.operands.toList() }
             .filterIsInstance<SpilledRegister>()
-            .maxOfOrNull { it.offset } ?: 0
-        val prologue = listOf(
+            .maxOfOrNull { - it.offset + 4 } ?: 0
+        val prolog = listOf(
             Instruction(Name.PUSHQ, PointerRegisters.RBP),
             Instruction(Name.MOVQ, PointerRegisters.RSP, PointerRegisters.RBP),
             Instruction(Name.SUBQ, Immediate(stackSize), PointerRegisters.RSP),
         )
-        val epilogue = listOf(
-            Instruction(Name.MOVQ, PointerRegisters.RBP, PointerRegisters.RSP),
-            Instruction(Name.POPQ, PointerRegisters.RBP),
-            Instruction(Name.RET)
-        )
-        return prologue + instructions + epilogue
+        return prolog + instructions
     }
 
     private fun mapRegisters(instructions: List<Instruction>): Map<VirtualRegister, RealRegister> {

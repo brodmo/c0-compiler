@@ -28,7 +28,8 @@ class InstructionSelector : NodeVisitor<UpDown> {
         }
         val opDown = when (name) {
             Name.IMULL, Name.IDIVL -> {
-                val resultRegister = if (node.operator == BinaryOperator.MODULO) GeneralRegisters.EDX else GeneralRegisters.EAX
+                val resultRegister =
+                    if (node.operator == BinaryOperator.MODULO) GeneralRegisters.EDX else GeneralRegisters.EAX
                 val temp = registerProducer.next()
                 listOf(
                     Instruction(Name.MOVL, leftUp!!, GeneralRegisters.EAX),
@@ -56,6 +57,8 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (_, sideEffectDown) = node.sideEffect.accept(this)
         val down = sideEffectDown + resultDown + listOf(
             Instruction(Name.MOVL, resultUp!!, GeneralRegisters.EAX),
+            Instruction(Name.MOVQ, PointerRegisters.RBP, PointerRegisters.RSP),
+            Instruction(Name.POPQ, PointerRegisters.RBP),
             Instruction(Name.RET)
         )
         GeneralRegisters.EAX to down
