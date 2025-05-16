@@ -27,14 +27,14 @@ class InstructionSelector : NodeVisitor<UpDown> {
             BinaryOperator.DIVIDE, BinaryOperator.MODULO -> Name.IDIVL
         }
         val opDown = when (name) {
-            Name.IDIVL -> {
-                val resultRegister = if (node.operator == BinaryOperator.DIVIDE) GeneralRegisters.EAX else GeneralRegisters.EDX
-                val opRegister = registerProducer.next()
+            Name.IMULL, Name.IDIVL -> {
+                val resultRegister = if (node.operator == BinaryOperator.MODULO) GeneralRegisters.EDX else GeneralRegisters.EAX
+                val temp = registerProducer.next()
                 listOf(
                     Instruction(Name.MOVL, leftUp!!, GeneralRegisters.EAX),
                     Instruction(Name.CLTD),
-                    Instruction(Name.MOVL, rightUp!!, opRegister),
-                    Instruction(Name.IDIVL, opRegister),
+                    Instruction(Name.MOVL, rightUp!!, temp),
+                    Instruction(name, temp),
                     Instruction(Name.MOVL, resultRegister, up)
                 )
             }
