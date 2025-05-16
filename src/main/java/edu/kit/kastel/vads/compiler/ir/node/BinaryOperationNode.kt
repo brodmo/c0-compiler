@@ -1,5 +1,10 @@
 package edu.kit.kastel.vads.compiler.ir.node
 
+import java.lang.System.identityHashCode
+
+const val HASH_PRIME = 31
+
+
 enum class BinaryOperator(val isCommutative: Boolean, val hasSideEffect: Boolean) {
     ADD(true, false),
     SUBTRACT(false, false),
@@ -29,13 +34,22 @@ open class BinaryOperationNode(
             other !is BinaryOperationNode || operator != other.operator -> false
             sideEffect != null -> this === other // something about value numbering and being conservative? idk
             operator.isCommutative -> setOf(left, right) == setOf(other.left, other.right)
+            // this is recursive and could lead to runtime issues
             else -> left == other.left && right == other.right
         }
     }
 
-    override fun hashCode(): Int = when {
-        sideEffect != null -> System.identityHashCode(this)
-        operator.isCommutative -> arrayOf<Any>(operator, System.identityHashCode(left) xor System.identityHashCode(right)).contentHashCode()
-        else -> arrayOf<Any>(operator, System.identityHashCode(left), System.identityHashCode(right)).contentHashCode()
+    override fun hashCode(): Int {
+        if (sideEffect != null) {
+            return identityHashCode(this)
+        }
+        val leftHash = identityHashCode(left)
+        val rightHash = identityHashCode(right)
+        val operandsHash = if (operator.isCommutative) {
+            leftHash xor rightHash
+        } else {
+            leftHash * HASH_PRIME + rightHash
+        }
+        return operator.hashCode() * HASH_PRIME + operandsHash
     }
 }
