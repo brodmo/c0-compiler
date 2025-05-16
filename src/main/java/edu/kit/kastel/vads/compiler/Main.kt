@@ -84,14 +84,19 @@ fun main(args: Array<String>) {
     val tempFile = output.resolveSibling("temp.s")
     Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
     val dir = output.parent.toAbsolutePath()
-    ProcessBuilder(wrapCommand(dir, "gcc",  tempFile.toString(), "-o", output.toString())).start().waitFor()
+    val compile = wrapCommand(dir, "gcc",  "./${tempFile.fileName}", "-o", "./${output.fileName}")
+    val process = ProcessBuilder(compile).redirectErrorStream(true).start()
+    val stdout = process.inputStream.bufferedReader().use { it.readText() }
+    val exitCode = process.waitFor()
+    print(stdout)
+    if (exitCode != 0) { error("Failed to compile $compile exited with code $exitCode") }
     if (onArm) {
         val armOutput = output.resolveSibling("${output.fileName}-arm")
         output.moveTo(armOutput, overwrite = true)
         Files.writeString(
             output, """
             #!/bin/sh
-            ${wrapCommand(dir, "/work/${armOutput.fileName}", "\"$@\"").joinToString(" ")}
+            ${wrapCommand(dir,"./${armOutput.fileName}", "\"$@\"").joinToString(" ")}
         """.trimIndent()
         )
         ProcessBuilder("chmod", "+x", armOutput.toString()).start().waitFor()
@@ -104,7 +109,7 @@ private fun wrapCommand(dir: Path, vararg args: String): List<String> = listOf(
         "run",
         "--platform", "linux/amd64",
         "--rm",
-        "-v", "\"$dir\":/work",
+        "-v", "$dir:/work",
         "-w", "/work",
         "gcc:latest",
         *args
