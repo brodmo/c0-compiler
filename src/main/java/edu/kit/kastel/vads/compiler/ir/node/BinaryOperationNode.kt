@@ -34,8 +34,8 @@ open class BinaryOperationNode(
     }
 
     override fun hashCode(): Int = when {
-        sideEffect != null -> super.hashCode()
-        operator.isCommutative -> arrayOf<Any>(operator, left.hashCode() + right.hashCode()).contentHashCode()
-        else -> arrayOf(operator, left, right).contentHashCode()
+        sideEffect != null -> System.identityHashCode(this)
+        operator.isCommutative -> arrayOf<Any>(operator, System.identityHashCode(left) xor System.identityHashCode(right)).contentHashCode()
+        else -> arrayOf<Any>(operator, System.identityHashCode(left), System.identityHashCode(right)).contentHashCode()
     }
 }
