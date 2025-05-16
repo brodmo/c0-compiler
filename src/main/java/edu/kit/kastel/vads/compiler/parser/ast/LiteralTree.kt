@@ -37,7 +37,7 @@ data class LiteralTree(
 
     private fun parseHex(end: Int): Long? {
         return try {
-            value.substring(2, end).toInt(16).toLong()
+            value.substring(2, end).toUInt(16).toLong()
         } catch (`_`: NumberFormatException) {
             null
         }
