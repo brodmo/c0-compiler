@@ -20,6 +20,9 @@ class Parser(private val tokenSource: TokenSource) {
     private fun parseFunction(): FunctionTree {
         val returnType = tokenSource.expectKeyword(KeywordType.INT)
         val identifier = tokenSource.expectIdentifier()
+        if (identifier.value != "main") {
+            throw ParseException ("expected main function but got $identifier");
+        }
         tokenSource.expectSeparator(SeparatorType.PAREN_OPEN)
         tokenSource.expectSeparator(SeparatorType.PAREN_CLOSE)
         val body = parseBlock()
