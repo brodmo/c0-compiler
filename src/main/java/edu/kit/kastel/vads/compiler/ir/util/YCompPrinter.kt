@@ -17,7 +17,7 @@ class YCompPrinter(private val graph: IrGraph) {
         }
 
         if (node !is Block) {
-            clusters.computeIfAbsent(node.safeBlock) {
+            clusters.computeIfAbsent(node.block!!) {
                 Collections.newSetFromMap(mutableMapOf())
             }.add(node)
         }

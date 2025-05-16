@@ -11,7 +11,6 @@ sealed class Node(
 ) {
     open val predecessors: List<Node> = originalPredecessors
     val successors: MutableList<Node> = mutableListOf()
-    val safeBlock: Block = block ?: this as Block
     val debugInfo: DebugInfo = DebugInfoHelper.debugInfo
 
     init {

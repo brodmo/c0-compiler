@@ -21,7 +21,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
         }
 
         if (node !is Block) {
-            this.clusters.computeIfAbsent(node.safeBlock, Function { `_`: Block ->
+            this.clusters.computeIfAbsent(node.block!!, Function { `_`: Block ->
                 Collections.newSetFromMap<Node>(
                     mutableMapOf()
                 )

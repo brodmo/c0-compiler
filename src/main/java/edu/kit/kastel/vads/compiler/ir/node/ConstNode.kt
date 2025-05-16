@@ -7,7 +7,7 @@ class ConstIntNode(block: Block, val value: Int) : Node(block, emptyList()) {
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 
     override fun equals(other: Any?): Boolean =
-        other is ConstIntNode && safeBlock == other.safeBlock && value == other.value
+        other is ConstIntNode && block == other.block && value == other.value
 
     override fun hashCode(): Int = value
 }

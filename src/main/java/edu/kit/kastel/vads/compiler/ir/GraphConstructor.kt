@@ -86,11 +86,11 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
             }
 
             block.predecessors.size == 1 -> {
-                readVariable(variable, block.predecessors.first().safeBlock)
+                readVariable(variable, block.predecessors.first().block!!)
             }
 
             else -> {
-                newPhi().also {
+                newPhi().let {
                     writeVariable(variable, block, it)
                     addPhiOperands(variable, it)
                 }
@@ -111,11 +111,11 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
             }
 
             block.predecessors.size == 1 -> {
-                readSideEffect(block.predecessors.first().safeBlock)
+                readSideEffect(block.predecessors.first().block!!)
             }
 
             else -> {
-                newPhi().also {
+                newPhi().let {
                     writeSideEffect(block, it)
                     addPhiOperands(it)
                 }
@@ -127,8 +127,8 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun addPhiOperands(variable: Name, phi: Phi): Node {
-        phi.safeBlock.predecessors.forEach { pred ->
-            phi.addPredecessor(readVariable(variable, pred.safeBlock))
+        phi.block?.predecessors?.forEach { pred ->
+            phi.addPredecessor(readVariable(variable, pred.block!!))
         }
         return tryRemoveTrivialPhi(phi)
     }
@@ -162,8 +162,8 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
         currentSideEffect[block] ?: readSideEffectRecursive(block)
 
     fun addPhiOperands(phi: Phi): Node {
-        phi.safeBlock.predecessors.forEach { pred ->
-            phi.addPredecessor(readSideEffect(pred.safeBlock))
+        phi.block?.predecessors?.forEach { pred ->
+            phi.addPredecessor(readSideEffect(pred.block!!))
         }
         return tryRemoveTrivialPhi(phi)
     }
