@@ -33,18 +33,6 @@ _main:
 """
 
 val onArm = System.getProperty("os.arch") in listOf("arm64", "aarch64")
-val commandPrefix = if (onArm) "./x86_run.sh" else null
-
-fun wrapCommand(command: String): String {
-    return if (onArm) {
-        """
-            #!/bin/bash
-            docker run --platform linux/amd64 --rm -v "$(pwd)":/work -w /work gcc:latest "$command $@"
-        """.trimIndent()
-    } else {
-        command
-    }
-}
 
 @Throws(IOException::class)
 fun main(args: Array<String>) {
