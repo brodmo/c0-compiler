@@ -16,6 +16,7 @@ import edu.kit.kastel.vads.compiler.semantic.SemanticException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.moveTo
 
 const val PREAMBLE =
     """.global main
@@ -32,7 +33,7 @@ _main:
 """
 
 val onArm = System.getProperty("os.arch") in listOf("arm64", "aarch64")
-val commandPrefix = if (onArm) "./x86_run.sh" else null
+val commandPrefix = if (onArm) listOf("arch", "-x86_64") else emptyList()
 
 @Throws(IOException::class)
 fun main(args: Array<String>) {
@@ -71,8 +72,23 @@ fun main(args: Array<String>) {
     val mainLines =  registerAllocator.allocate(instructions).map { it.emit() } + listOf("")
     val tempFile = output.resolveSibling("temp.s")
     Files.writeString(tempFile, PREAMBLE + mainLines.joinToString("\n"))
-    val command = listOfNotNull(commandPrefix, "gcc", tempFile.toString(), "-o", output.toString())
-    ProcessBuilder(command).start().waitFor()
+    val command = commandPrefix + listOf("gcc", tempFile.toString(), "-o", output.toString())
+    val process = ProcessBuilder(command).redirectErrorStream(true).start()
+    val exitCode = process.waitFor()
+    if (exitCode != 0) {
+        System.err.println("Compilation failed with exit code $exitCode")
+        System.err.println("Output: ${process.inputStream.bufferedReader().readText()}")
+        System.exit(1)
+    }
+    if (onArm) {
+        val bin = output.resolveSibling("bin")
+        output.moveTo(bin, overwrite = true)
+        Files.writeString(output, """
+            #!/bin/bash
+            exec ${commandPrefix.joinToString(" ")} ${bin.toAbsolutePath()}
+        """.trimIndent())
+        output.toFile().setExecutable(true)
+    }
 }
 
 @Throws(IOException::class)
