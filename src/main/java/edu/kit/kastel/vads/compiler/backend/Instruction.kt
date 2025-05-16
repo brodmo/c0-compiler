@@ -4,6 +4,7 @@ enum class Name {
     MOVL,
     RET,
     ADDL, SUBL,
+    SUBQ, MOVQ, PUSHQ, POPQ,
     IMULL, IDIVL, // Integer = signed variant
     CLTD, // Convert Long To Double
     CLTQ, // Convert Long To Quad
