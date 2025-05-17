@@ -33,7 +33,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
             this.edges.add(Edge(predecessor, node, idx++))
             prepare(predecessor, seen)
         }
-        if (node === this.graph.endBlock) {
+        if (node == this.graph.endBlock) {
             this.clusters.put(this.graph.endBlock, mutableSetOf())
         }
     }

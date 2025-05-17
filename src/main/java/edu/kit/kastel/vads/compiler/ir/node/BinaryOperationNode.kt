@@ -29,14 +29,11 @@ open class BinaryOperationNode(
 
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 
-    override fun equals(other: Any?): Boolean {
-        return when {
-            other !is BinaryOperationNode || operator != other.operator -> false
-            sideEffect != null -> this === other // something about value numbering and being conservative? idk
-            operator.isCommutative -> setOf(left, right) == setOf(other.left, other.right)
-            // this is recursive and could lead to runtime issues
-            else -> left == other.left && right == other.right
-        }
+    override fun equals(other: Any?): Boolean = when {
+        other !is BinaryOperationNode || operator != other.operator -> false
+        sideEffect != null -> this === other
+        else -> left === other.left && right === other.right
+                || (operator.isCommutative && left === other.right && right === other.left)
     }
 
     override fun hashCode(): Int {
