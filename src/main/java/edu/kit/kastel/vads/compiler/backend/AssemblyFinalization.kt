@@ -8,7 +8,7 @@ private fun eliminateMemToMemInstructions(instructions: List<Instruction>): List
     return instructions.flatMap { inst ->
         when {
             inst.operands.filterIsInstance<SpilledRegister>().size == 2 -> {
-                val (src, dst) = inst.operands
+                val (dst, src) = inst.operands
                 listOf(
                     Instruction(Name.MOV, TEMP_REG, src),
                     Instruction(inst.name, dst, TEMP_REG),
