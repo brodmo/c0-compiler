@@ -21,14 +21,15 @@ import kotlin.system.exitProcess
 const val DUMP_GRAPHS = false
 
 val PREAMBLE = """
+    .intel_syntax noprefix
     .global main
     .global _main
     .text
     
     main:
     call _main
-    movq %rax, %rdi
-    movq $0x3C, %rax
+    mov rdi, rax
+    mov rax, 0x3C
     syscall
     
     _main:

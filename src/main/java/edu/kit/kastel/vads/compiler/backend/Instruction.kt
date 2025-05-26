@@ -1,13 +1,14 @@
 package edu.kit.kastel.vads.compiler.backend
 
+import kotlin.math.absoluteValue
+
 enum class Name {
-    MOVL,
+    MOV,
     RET,
-    ADDL, SUBL,
-    SUBQ, MOVQ, PUSHQ, POPQ,
-    IMULL, IDIVL, // Integer = signed variant
-    CLTD, // Convert Long To Double
-    CLTQ, // Convert Long To Quad
+    ADD, SUB,
+    PUSH, POP,
+    IMUL, IDIV, // Integer = signed variant
+    CDQ, // Convert Double to Quad
 }
 
 sealed interface Operand {
@@ -15,39 +16,43 @@ sealed interface Operand {
 }
 
 data class Immediate(val value: Int) : Operand {
-    override fun emit(): String = "$$value"
+    override fun emit(): String = "$value"
 }
 
-data class Memory(val address: String) : Operand {
-    override fun emit(): String = address
-}
 
 sealed interface Register : Operand
 
 data class VirtualRegister(val id: Int) : Register {
-    override fun emit() = "%t$id"
+    override fun emit() = "t$id"
 }
 
 sealed interface RealRegister : Register
 
-enum class GeneralRegisters : RealRegister {
+sealed interface HardwareRegister : RealRegister
+
+enum class GeneralRegister : HardwareRegister {
     EAX, EBX, ECX, EDX,
     ESI, EDI,
     R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
     ;
 
-    override fun emit() = "%${name.lowercase()}"
+    override fun emit() = name.lowercase()
 }
 
-enum class PointerRegisters : RealRegister {
+enum class PointerRegister : HardwareRegister {
     RBP, RSP;
 
-    override fun emit() = "%${name.lowercase()}"
+    override fun emit() = name.lowercase()
 }
 
 
 data class SpilledRegister(val offset: Int) : RealRegister {
-    override fun emit() = "$offset(${PointerRegisters.RBP.emit()})"
+    val inside = listOf(
+        PointerRegister.RBP.emit(),
+        if (offset >= 0) "+" else "-",
+        offset.absoluteValue
+    ).joinToString(" ")
+    override fun emit() = "[$inside]"
 }
 
 
@@ -58,7 +63,10 @@ data class Instruction(
     constructor(name: Name, vararg operands: Operand) : this(name, operands.toList())
 
     fun emit(): String {
-        val ops = operands.joinToString(", ") { it.emit() }
-        return "${name.name.lowercase()} $ops"
+        return listOfNotNull(
+            name.name.lowercase(),
+            "DWORD PTR".takeIf { operands.isNotEmpty() && operands.none { it is HardwareRegister } },
+            operands.joinToString(", ") { it.emit() }
+        ).joinToString(" ")
     }
 }

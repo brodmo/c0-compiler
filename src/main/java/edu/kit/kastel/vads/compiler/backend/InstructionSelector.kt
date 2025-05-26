@@ -21,28 +21,28 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (_, sideEffectDown) = node.sideEffect?.accept(this) ?: (null to emptyList())
         val up = registerProducer.next()
         val name = when (node.operator) {
-            BinaryOperator.ADD -> Name.ADDL
-            BinaryOperator.SUBTRACT -> Name.SUBL
-            BinaryOperator.MULTIPLY -> Name.IMULL
-            BinaryOperator.DIVIDE, BinaryOperator.MODULO -> Name.IDIVL
+            BinaryOperator.ADD -> Name.ADD
+            BinaryOperator.SUBTRACT -> Name.SUB
+            BinaryOperator.MULTIPLY -> Name.IMUL
+            BinaryOperator.DIVIDE, BinaryOperator.MODULO -> Name.IDIV
         }
         val opDown = when (name) {
-            Name.IMULL, Name.IDIVL -> {
+            Name.IMUL, Name.IDIV -> {
                 val resultRegister =
-                    if (node.operator == BinaryOperator.MODULO) GeneralRegisters.EDX else GeneralRegisters.EAX
+                    if (node.operator == BinaryOperator.MODULO) GeneralRegister.EDX else GeneralRegister.EAX
                 val temp = registerProducer.next()
                 listOf(
-                    Instruction(Name.MOVL, leftUp!!, GeneralRegisters.EAX),
-                    Instruction(Name.CLTD),
-                    Instruction(Name.MOVL, rightUp!!, temp),
+                    Instruction(Name.MOV, GeneralRegister.EAX, leftUp!!),
+                    Instruction(Name.CDQ),
+                    Instruction(Name.MOV, temp, rightUp!!),
                     Instruction(name, temp),
-                    Instruction(Name.MOVL, resultRegister, up)
+                    Instruction(Name.MOV, up, resultRegister)
                 )
             }
 
             else -> listOf(
-                Instruction(Name.MOVL, leftUp!!, up),
-                Instruction(name, rightUp!!, up),
+                Instruction(Name.MOV, up, leftUp!!),
+                Instruction(name, up, rightUp!!),
             )
         }
         up to leftDown + rightDown + sideEffectDown + opDown
@@ -56,12 +56,12 @@ class InstructionSelector : NodeVisitor<UpDown> {
         val (resultUp, resultDown) = node.result.accept(this)
         val (_, sideEffectDown) = node.sideEffect.accept(this)
         val down = sideEffectDown + resultDown + listOf(
-            Instruction(Name.MOVL, resultUp!!, GeneralRegisters.EAX),
-            Instruction(Name.MOVQ, PointerRegisters.RBP, PointerRegisters.RSP),
-            Instruction(Name.POPQ, PointerRegisters.RBP),
+            Instruction(Name.MOV, GeneralRegister.EAX, resultUp!!),
+            Instruction(Name.MOV, PointerRegister.RSP, PointerRegister.RBP),
+            Instruction(Name.POP, PointerRegister.RBP),
             Instruction(Name.RET)
         )
-        GeneralRegisters.EAX to down
+        GeneralRegister.EAX to down
     }
 
     override fun visit(node: ProjNode): UpDown = rememberUps(node) { node.pred.accept(this) }

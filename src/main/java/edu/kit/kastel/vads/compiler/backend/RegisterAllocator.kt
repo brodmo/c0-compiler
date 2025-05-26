@@ -1,6 +1,6 @@
 package edu.kit.kastel.vads.compiler.backend
 
-val TEMP_REG = GeneralRegisters.ECX
+val TEMP_REG = GeneralRegister.ECX
 
 class RegisterAllocator {
 
@@ -22,8 +22,8 @@ class RegisterAllocator {
     }
 
     private fun produceRegisters(): Iterator<RealRegister> = sequence {
-        GeneralRegisters.entries
-            .filter { it !in listOf(GeneralRegisters.EAX, GeneralRegisters.EDX, TEMP_REG) }
+        GeneralRegister.entries
+            .filter { it !in listOf(GeneralRegister.EAX, GeneralRegister.EDX, TEMP_REG) }
             .forEach { yield(it) }
         generateSequence(-4) { it - 4 }
             .forEach { yield(SpilledRegister(it)) }

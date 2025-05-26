@@ -10,8 +10,8 @@ private fun eliminateMemToMemInstructions(instructions: List<Instruction>): List
             inst.operands.filterIsInstance<SpilledRegister>().size == 2 -> {
                 val (src, dst) = inst.operands
                 listOf(
-                    Instruction(Name.MOVL, src, TEMP_REG),
-                    Instruction(inst.name, TEMP_REG, dst),
+                    Instruction(Name.MOV, TEMP_REG, src),
+                    Instruction(inst.name, dst, TEMP_REG),
                 )
             }
 
@@ -26,9 +26,9 @@ private fun addProlog(instructions: List<Instruction>): List<Instruction> {
         .filterIsInstance<SpilledRegister>()
         .maxOfOrNull { -it.offset + 4 } ?: 0
     val prolog = listOf(
-        Instruction(Name.PUSHQ, PointerRegisters.RBP),
-        Instruction(Name.MOVQ, PointerRegisters.RSP, PointerRegisters.RBP),
-        Instruction(Name.SUBQ, Immediate(stackSize), PointerRegisters.RSP),
+        Instruction(Name.PUSH, PointerRegister.RBP),
+        Instruction(Name.MOV, PointerRegister.RBP, PointerRegister.RSP),
+        Instruction(Name.SUB, PointerRegister.RSP, Immediate(stackSize)),
     )
     return prolog + instructions
 }
