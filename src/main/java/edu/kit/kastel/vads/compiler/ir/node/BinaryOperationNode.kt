@@ -29,17 +29,15 @@ open class BinaryOperationNode(
 
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 
-    override fun equals(other: Any?): Boolean = when {
-        other !is BinaryOperationNode || operator != other.operator -> false
-        sideEffect != null -> this === other
-        else -> left === other.left && right === other.right
+    override fun equals(other: Any?): Boolean {
+        if (sideEffect != null) return this === other
+        if (other !is BinaryOperationNode || operator != other.operator) return false
+        return left === other.left && right === other.right
                 || (operator.isCommutative && left === other.right && right === other.left)
     }
 
     override fun hashCode(): Int {
-        if (sideEffect != null) {
-            return identityHashCode(this)
-        }
+        if (sideEffect != null) return identityHashCode(this)
         val leftHash = identityHashCode(left)
         val rightHash = identityHashCode(right)
         val operandsHash = if (operator.isCommutative) {
