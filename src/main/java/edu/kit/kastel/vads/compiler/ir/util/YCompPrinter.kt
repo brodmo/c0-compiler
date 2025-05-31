@@ -20,6 +20,7 @@ class YCompPrinter(private val graph: IrGraph) {
             clusters.computeIfAbsent(node.block!!) {
                 Collections.newSetFromMap(mutableMapOf())
             }.add(node)
+            prepare(node.block, seen)
         }
 
         for (predecessor in node.predecessors) {

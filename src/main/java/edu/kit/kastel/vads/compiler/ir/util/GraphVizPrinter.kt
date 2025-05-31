@@ -27,6 +27,7 @@ class GraphVizPrinter(private val graph: IrGraph) {
                 )
             })
                 .add(node)
+            prepare(node.block, seen)
         }
         var idx = 0
         for (predecessor in node.predecessors) {
