@@ -25,6 +25,8 @@ sealed class Node(
 
     abstract fun <T> accept(visitor: NodeVisitor<T>): T
 
+    open fun hasSideEffect(): Boolean = false
+
     open fun skipProj(): Node = this
 
     override fun toString(): String = listOfNotNull(this::class.simpleName, info()).joinToString(" ")

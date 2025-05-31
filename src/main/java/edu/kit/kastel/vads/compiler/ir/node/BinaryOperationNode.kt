@@ -21,6 +21,10 @@ open class BinaryOperationNode(
     val sideEffect: Node? = null,
 ) : Node(block, listOfNotNull(left, right, sideEffect).toMutableList()) {
 
+    override fun hasSideEffect(): Boolean = sideEffect != null
+
+    override fun info() = operator.name
+
     init {
         assert(operator.hasSideEffect == (sideEffect != null)) {
             "Operator $operator has side effect: ${operator.hasSideEffect}, but side effect is ${sideEffect != null}"

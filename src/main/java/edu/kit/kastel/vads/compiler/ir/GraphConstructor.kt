@@ -19,46 +19,21 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     }
 
     fun newStart(): Node {
-        assert(currentBlock == graph.startBlock) { "start must be in start block" }
+        require(currentBlock == graph.startBlock) { "start must be in start block" }
         return StartNode(currentBlock)
     }
 
-    fun newAdd(left: Node, right: Node): Node =
-        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.ADD, left, right))
-
-    fun newSub(left: Node, right: Node): Node =
-        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.SUBTRACT, left, right))
-
-    fun newMul(left: Node, right: Node): Node =
-        optimizer.transform(BinaryOperationNode(currentBlock, BinaryOperator.MULTIPLY, left, right))
-
-    fun newDiv(left: Node, right: Node): Node =
-        optimizer.transform(
-            BinaryOperationNode(
-                currentBlock,
-                BinaryOperator.DIVIDE,
-                left,
-                right,
-                readCurrentSideEffect()
-            )
-        )
-
-    fun newMod(left: Node, right: Node): Node =
-        optimizer.transform(
-            BinaryOperationNode(
-                currentBlock,
-                BinaryOperator.MODULO,
-                left,
-                right,
-                readCurrentSideEffect()
-            )
-        )
+    fun newBinaryOperation(operator: BinaryOperator, left: Node, right: Node): Node {
+        val sideEffect = if (operator.hasSideEffect) readCurrentSideEffect() else null
+        val node = BinaryOperationNode(currentBlock, operator, left, right, sideEffect)
+        return optimizer.transform(node)
+    }
 
     fun newReturn(result: Node): Node =
         ReturnNode(currentBlock, readCurrentSideEffect(), result)
 
     fun newConstInt(value: Int): Node =
-    // always move const into start block, this allows better deduplication
+        // always move const into start block, this allows better deduplication
         // and resultingly in better value numbering
         optimizer.transform(ConstIntNode(graph.startBlock, value))
 
@@ -104,7 +79,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
             block !in sealedBlocks -> {
                 Phi(block).also {
                     val old = incompleteSideEffectPhis.put(block, it)
-                    assert(old == null) { "double readSideEffectRecursive for $block" }
+                    require(old == null) { "double readSideEffectRecursive for $block" }
                 }
             }
 

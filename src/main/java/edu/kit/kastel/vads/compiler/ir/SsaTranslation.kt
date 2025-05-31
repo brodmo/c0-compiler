@@ -1,6 +1,5 @@
 package edu.kit.kastel.vads.compiler.ir
 
-import edu.kit.kastel.vads.compiler.ir.node.BinaryOperationNode
 import edu.kit.kastel.vads.compiler.ir.node.BinaryOperator
 import edu.kit.kastel.vads.compiler.ir.node.Block
 import edu.kit.kastel.vads.compiler.ir.node.Node
@@ -12,6 +11,20 @@ import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 import java.util.*
+
+private val operatorMap = mapOf(
+    Operator.OperatorType.MINUS to BinaryOperator.SUBTRACT,
+    Operator.OperatorType.ASSIGN_MINUS to BinaryOperator.SUBTRACT,
+    Operator.OperatorType.PLUS to BinaryOperator.ADD,
+    Operator.OperatorType.ASSIGN_PLUS to BinaryOperator.ADD,
+    Operator.OperatorType.MUL to BinaryOperator.MULTIPLY,
+    Operator.OperatorType.ASSIGN_MUL to BinaryOperator.MULTIPLY,
+    Operator.OperatorType.DIV to BinaryOperator.DIVIDE,
+    Operator.OperatorType.ASSIGN_DIV to BinaryOperator.DIVIDE,
+    Operator.OperatorType.MOD to BinaryOperator.MODULO,
+    Operator.OperatorType.ASSIGN_MOD to BinaryOperator.MODULO
+)
+
 
 /** SSA translation as described in
  * [`Simple and Efficient Construction of Static Single Assignment Form`](https://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf).
@@ -29,17 +42,12 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
         return this.constructor.graph
     }
 
-    private fun writeVariable(variable: Name, block: Block, value: Node) {
+    private fun writeVariable(variable: Name, block: Block, value: Node) =
         this.constructor.writeVariable(variable, block, value)
-    }
 
-    private fun readVariable(variable: Name, block: Block): Node {
-        return this.constructor.readVariable(variable, block)
-    }
+    private fun readVariable(variable: Name, block: Block): Node = this.constructor.readVariable(variable, block)
 
-    private fun currentBlock(): Block {
-        return this.constructor.currentBlock
-    }
+    private fun currentBlock(): Block = this.constructor.currentBlock
 
     private class SsaTranslationVisitor : Visitor<SsaTranslation, Node?> {
         private val debugStack: Deque<DebugInfo> = ArrayDeque()
@@ -53,42 +61,36 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
             DebugInfoHelper.debugInfo = debugStack.pop()
         }
 
+        private fun createBinaryOperation(
+            data: SsaTranslation,
+            operatorType: Operator.OperatorType,
+            left: Node,
+            right: Node
+        ): Node {
+            val binaryOperator = operatorMap[operatorType]
+                ?: throw IllegalArgumentException("Unsupported binary operator: $operatorType")
+            val result = data.constructor.newBinaryOperation(binaryOperator, left, right)
+            return if (result.hasSideEffect()) {
+                addSideEffect(data, result)
+            } else {
+                result
+            }
+        }
+
         override fun visit(assignmentTree: AssignmentTree, data: SsaTranslation): Node? {
             pushSpan(assignmentTree)
-
-            val desugar: ((Node, Node) -> Node)? = when (assignmentTree.operator.type) {
-                Operator.OperatorType.ASSIGN_MINUS -> { left, right ->
-                    data.constructor.newSub(left, right)
-                }
-
-                Operator.OperatorType.ASSIGN_PLUS -> { left, right ->
-                    data.constructor.newAdd(left, right)
-                }
-
-                Operator.OperatorType.ASSIGN_MUL -> { left, right ->
-                    data.constructor.newMul(left, right)
-                }
-
-                Operator.OperatorType.ASSIGN_DIV -> { lhs, rhs ->
-                    projResultDivMod(data, data.constructor.newDiv(lhs, rhs))
-                }
-
-                Operator.OperatorType.ASSIGN_MOD -> { lhs, rhs ->
-                    projResultDivMod(data, data.constructor.newMod(lhs, rhs))
-                }
-
-                Operator.OperatorType.ASSIGN -> null
-                else -> throw IllegalArgumentException("not an assignment operator ${assignmentTree.operator}")
-            }
 
             when (val lvalue = assignmentTree.lValue) {
                 is LValueIdentTree -> {
                     var rhs = assignmentTree.expression.accept(this, data)
                         ?: error("Assignment expression must produce a value")
 
-                    if (desugar != null) {
-                        rhs = desugar(data.readVariable(lvalue.name.name, data.currentBlock()), rhs)
+                    // Handle compound assignments (+=, -=, *=, /=, %=)
+                    if (assignmentTree.operator.type != Operator.OperatorType.ASSIGN) {
+                        val lhs = data.readVariable(lvalue.name.name, data.currentBlock())
+                        rhs = createBinaryOperation(data, assignmentTree.operator.type, lhs, rhs)
                     }
+
                     data.writeVariable(lvalue.name.name, data.currentBlock(), rhs)
                 }
             }
@@ -104,14 +106,7 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
             val rhs = binaryOperationTree.rhs.accept(this, data)
                 ?: error("Right-hand side of binary operation must produce a value")
 
-            val res = when (binaryOperationTree.operatorType) {
-                Operator.OperatorType.MINUS -> data.constructor.newSub(lhs, rhs)
-                Operator.OperatorType.PLUS -> data.constructor.newAdd(lhs, rhs)
-                Operator.OperatorType.MUL -> data.constructor.newMul(lhs, rhs)
-                Operator.OperatorType.DIV -> projResultDivMod(data, data.constructor.newDiv(lhs, rhs))
-                Operator.OperatorType.MOD -> projResultDivMod(data, data.constructor.newMod(lhs, rhs))
-                else -> throw IllegalArgumentException("not a binary expression operator ${binaryOperationTree.operatorType}")
-            }
+            val res = createBinaryOperation(data, binaryOperationTree.operatorType, lhs, rhs)
 
             popSpan()
             return res
@@ -184,7 +179,8 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
 
             val node = negateTree.expression.accept(this, data)
                 ?: error("Negation expression must produce a value")
-            val res = data.constructor.newSub(data.constructor.newConstInt(0), node)
+            val res =
+                data.constructor.newBinaryOperation(BinaryOperator.SUBTRACT, data.constructor.newConstInt(0), node)
 
             popSpan()
             return res
@@ -210,19 +206,10 @@ class SsaTranslation(private val function: FunctionTree, optimizer: Optimizer) {
             throw UnsupportedOperationException()
         }
 
-        private fun projResultDivMod(data: SsaTranslation, divMod: Node): Node {
-            // make sure we actually have a div or a mod, as optimizations could
-            // have changed it to something else already
-            if (divMod !is BinaryOperationNode || divMod.operator !in setOf(
-                    BinaryOperator.DIVIDE,
-                    BinaryOperator.MODULO,
-                )
-            ) {
-                return divMod
-            }
-            val projSideEffect = data.constructor.newSideEffectProj(divMod)
+        private fun addSideEffect(data: SsaTranslation, node: Node): Node {
+            val projSideEffect = data.constructor.newSideEffectProj(node)
             data.constructor.writeCurrentSideEffect(projSideEffect)
-            return data.constructor.newResultProj(divMod)
+            return data.constructor.newResultProj(node)
         }
     }
 }
