@@ -1,6 +1,7 @@
 package edu.kit.kastel.vads.compiler.semantic
 
 import edu.kit.kastel.vads.compiler.lexer.Operator
+import edu.kit.kastel.vads.compiler.lexer.OperatorType
 import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.visitor.NoOpVisitor
 import edu.kit.kastel.vads.compiler.parser.visitor.Unit
@@ -21,7 +22,7 @@ class VariableStatusAnalysis : NoOpVisitor<Namespace<VariableStatusAnalysis.Vari
                 val name = lValue.name
                 val status = context.get(name)
                 when (assignmentTree.operator.type) {
-                    Operator.OperatorType.ASSIGN -> {
+                    OperatorType.ASSIGN -> {
                         checkDeclared(name, status)
                     }
 

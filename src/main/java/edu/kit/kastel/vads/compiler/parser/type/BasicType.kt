@@ -5,7 +5,5 @@ import java.util.*
 enum class BasicType : Type {
     INT;
 
-    override fun asString(): String {
-        return name.lowercase(Locale.ROOT)
-    }
+    override fun asString(): String = name.lowercase(Locale.ROOT)
 }

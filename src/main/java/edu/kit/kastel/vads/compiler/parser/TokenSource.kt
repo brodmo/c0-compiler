@@ -28,7 +28,7 @@ class TokenSource {
         return token
     }
 
-    fun expectSeparator(type: Separator.SeparatorType): Separator {
+    fun expectSeparator(type: SeparatorType): Separator {
         val token = peek()
         if (token !is Separator || token.type != type) {
             throw ParseException("expected separator '$type' but got $token")
@@ -37,7 +37,7 @@ class TokenSource {
         return token
     }
 
-    fun expectOperator(type: Operator.OperatorType): Operator {
+    fun expectOperator(type: OperatorType): Operator {
         val token = peek()
         if (token !is Operator || token.type != type) {
             throw ParseException("expected operator '$type' but got $token")

@@ -23,5 +23,5 @@ internal data class IdentName(val identifier: String) : Name {
 }
 
 internal data class KeywordName(val type: KeywordType) : Name {
-    override fun asString(): String = this.type.keyword()
+    override fun asString(): String = this.type.keyword
 }

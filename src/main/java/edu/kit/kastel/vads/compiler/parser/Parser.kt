@@ -1,8 +1,6 @@
 package edu.kit.kastel.vads.compiler.parser
 
 import edu.kit.kastel.vads.compiler.lexer.*
-import edu.kit.kastel.vads.compiler.lexer.Operator.OperatorType
-import edu.kit.kastel.vads.compiler.lexer.Separator.SeparatorType
 import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import edu.kit.kastel.vads.compiler.parser.type.BasicType

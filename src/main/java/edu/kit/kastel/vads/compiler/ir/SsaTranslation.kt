@@ -7,22 +7,23 @@ import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper
 import edu.kit.kastel.vads.compiler.lexer.Operator
+import edu.kit.kastel.vads.compiler.lexer.OperatorType
 import edu.kit.kastel.vads.compiler.parser.ast.*
 import edu.kit.kastel.vads.compiler.parser.symbol.Name
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 import java.util.*
 
 private val operatorMap = mapOf(
-    Operator.OperatorType.MINUS to BinaryOperator.SUBTRACT,
-    Operator.OperatorType.ASSIGN_MINUS to BinaryOperator.SUBTRACT,
-    Operator.OperatorType.PLUS to BinaryOperator.ADD,
-    Operator.OperatorType.ASSIGN_PLUS to BinaryOperator.ADD,
-    Operator.OperatorType.MUL to BinaryOperator.MULTIPLY,
-    Operator.OperatorType.ASSIGN_MUL to BinaryOperator.MULTIPLY,
-    Operator.OperatorType.DIV to BinaryOperator.DIVIDE,
-    Operator.OperatorType.ASSIGN_DIV to BinaryOperator.DIVIDE,
-    Operator.OperatorType.MOD to BinaryOperator.MODULO,
-    Operator.OperatorType.ASSIGN_MOD to BinaryOperator.MODULO
+    OperatorType.MINUS to BinaryOperator.SUBTRACT,
+    OperatorType.ASSIGN_MINUS to BinaryOperator.SUBTRACT,
+    OperatorType.PLUS to BinaryOperator.ADD,
+    OperatorType.ASSIGN_PLUS to BinaryOperator.ADD,
+    OperatorType.MUL to BinaryOperator.MULTIPLY,
+    OperatorType.ASSIGN_MUL to BinaryOperator.MULTIPLY,
+    OperatorType.DIV to BinaryOperator.DIVIDE,
+    OperatorType.ASSIGN_DIV to BinaryOperator.DIVIDE,
+    OperatorType.MOD to BinaryOperator.MODULO,
+    OperatorType.ASSIGN_MOD to BinaryOperator.MODULO
 )
 
 /**
@@ -53,7 +54,7 @@ internal class SsaContext(private val graphConstructor: GraphConstructor) {
 
     fun createConstInt(value: Int): Node = graphConstructor.newConstInt(value)
 
-    fun createBinaryOperation(operatorType: Operator.OperatorType, left: Node, right: Node): Node {
+    fun createBinaryOperation(operatorType: OperatorType, left: Node, right: Node): Node {
         val binaryOperator = operatorMap[operatorType]
             ?: throw IllegalArgumentException("Unsupported binary operator: $operatorType")
 
@@ -105,7 +106,7 @@ internal class SsaTranslationVisitor : Visitor<SsaContext, Node?> {
                     ?: error("Assignment expression must produce a value")
 
                 // Handle compound assignments (+=, -=, *=, /=, %=)
-                if (assignmentTree.operator.type != Operator.OperatorType.ASSIGN) {
+                if (assignmentTree.operator.type != OperatorType.ASSIGN) {
                     val lhs = context.readVariable(lvalue.name.name)
                     rhs = context.createBinaryOperation(assignmentTree.operator.type, lhs, rhs)
                 }
@@ -166,7 +167,7 @@ internal class SsaTranslationVisitor : Visitor<SsaContext, Node?> {
         val operand = negateTree.expression.accept(this, context)
             ?: error("Negation expression must produce a value")
         val zero = context.createConstInt(0)
-        context.createBinaryOperation(Operator.OperatorType.MINUS, zero, operand)
+        context.createBinaryOperation(OperatorType.MINUS, zero, operand)
     }
 
     override fun visit(programTree: ProgramTree, context: SsaContext): Node? {

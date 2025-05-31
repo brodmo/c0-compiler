@@ -2,8 +2,6 @@ package edu.kit.kastel.vads.compiler.lexer
 
 import edu.kit.kastel.vads.compiler.Position
 import edu.kit.kastel.vads.compiler.Span
-import edu.kit.kastel.vads.compiler.lexer.Operator.OperatorType
-import edu.kit.kastel.vads.compiler.lexer.Separator.SeparatorType
 
 class Lexer private constructor(private val source: String) {
     private var pos: Int = 0
@@ -11,9 +9,7 @@ class Lexer private constructor(private val source: String) {
     private var line: Int = 0
 
     companion object {
-        fun forString(source: String): Lexer {
-            return Lexer(source)
-        }
+        fun forString(source: String): Lexer = Lexer(source)
     }
 
     fun nextToken(): Token? {
@@ -130,9 +126,7 @@ class Lexer private constructor(private val source: String) {
         return null
     }
 
-    private fun separator(type: SeparatorType): Separator {
-        return Separator(type, buildSpan(1))
-    }
+    private fun separator(type: SeparatorType): Separator = Separator(type, buildSpan(1))
 
     private fun lexIdentifierOrKeyword(): Token {
         var off = 1
@@ -142,7 +136,7 @@ class Lexer private constructor(private val source: String) {
         val id = source.substring(pos, pos + off)
         // This is a naive solution. Using a better data structure (hashmap, trie) likely performs better.
         for (value in KeywordType.values()) {
-            if (value.keyword() == id) {
+            if (value.keyword == id) {
                 return Keyword(value, buildSpan(off))
             }
         }
@@ -172,31 +166,20 @@ class Lexer private constructor(private val source: String) {
         return NumberLiteral(source.substring(pos, pos + off), 10, buildSpan(off))
     }
 
-    private fun isHexPrefix(): Boolean {
-        return peek() == '0' && hasMore(1) && (peek(1) == 'x' || peek(1) == 'X')
-    }
+    private fun isHexPrefix(): Boolean = peek() == '0' && hasMore(1) && (peek(1) == 'x' || peek(1) == 'X')
 
-    private fun isIdentifierChar(c: Char): Boolean {
-        return c == '_' ||
-                c in 'a'..'z' ||
-                c in 'A'..'Z' ||
-                c in '0'..'9'
-    }
+    private fun isIdentifierChar(c: Char): Boolean = c == '_' || c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9'
 
-    private fun isNumeric(c: Char): Boolean {
-        return c in '0'..'9'
-    }
+    private fun isNumeric(c: Char): Boolean = c in '0'..'9'
 
-    private fun isHex(c: Char): Boolean {
-        return isNumeric(c) || c in 'a'..'f' || c in 'A'..'F'
-    }
+    private fun isHex(c: Char): Boolean = isNumeric(c) || c in 'a'..'f' || c in 'A'..'F'
 
-    private fun singleOrAssign(single: OperatorType, assign: OperatorType): Token {
+    private fun singleOrAssign(single: OperatorType, assign: OperatorType): Operator =
         if (hasMore(1) && peek(1) == '=') {
-            return Operator(assign, buildSpan(2))
+            Operator(assign, buildSpan(2))
+        } else {
+            Operator(single, buildSpan(1))
         }
-        return Operator(single, buildSpan(1))
-    }
 
     private fun buildSpan(proceed: Int): Span {
         val start = pos
@@ -206,15 +189,9 @@ class Lexer private constructor(private val source: String) {
         return Span.SimpleSpan(s, e)
     }
 
-    private fun peek(): Char {
-        return source[pos]
-    }
+    private fun peek(): Char = source[pos]
 
-    private fun hasMore(offset: Int): Boolean {
-        return pos + offset < source.length
-    }
+    private fun hasMore(offset: Int): Boolean = pos + offset < source.length
 
-    private fun peek(offset: Int): Char {
-        return source[pos + offset]
-    }
+    private fun peek(offset: Int): Char = source[pos + offset]
 }

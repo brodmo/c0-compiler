@@ -2,6 +2,7 @@ package edu.kit.kastel.vads.compiler.parser.ast
 
 import edu.kit.kastel.vads.compiler.Span
 import edu.kit.kastel.vads.compiler.lexer.Operator
+import edu.kit.kastel.vads.compiler.lexer.OperatorType
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 
 /**
@@ -10,7 +11,7 @@ import edu.kit.kastel.vads.compiler.parser.visitor.Visitor
 data class BinaryOperationTree(
     val lhs: ExpressionTree,
     val rhs: ExpressionTree,
-    val operatorType: Operator.OperatorType
+    val operatorType: OperatorType
 ) : ExpressionTree {
     override val span = this.lhs.span.merge(this.rhs.span)
 
