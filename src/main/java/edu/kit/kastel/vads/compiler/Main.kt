@@ -3,8 +3,8 @@ package edu.kit.kastel.vads.compiler
 import edu.kit.kastel.vads.compiler.backend.InstructionSelector
 import edu.kit.kastel.vads.compiler.backend.RegisterAllocator
 import edu.kit.kastel.vads.compiler.ir.IrGraph
-import edu.kit.kastel.vads.compiler.ir.SsaTranslation
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering
+import edu.kit.kastel.vads.compiler.ir.translateToSsa
 import edu.kit.kastel.vads.compiler.ir.util.YCompPrinter
 import edu.kit.kastel.vads.compiler.lexer.Lexer
 import edu.kit.kastel.vads.compiler.parser.ParseException
@@ -81,7 +81,7 @@ private fun analyzeSemantics(program: ProgramTree) {
 
 private fun generateIrGraphs(program: ProgramTree): List<IrGraph> {
     return program.topLevelTrees.map { function ->
-        SsaTranslation(function, LocalValueNumbering()).translate()
+        translateToSsa(function, LocalValueNumbering())
     }
 }
 
