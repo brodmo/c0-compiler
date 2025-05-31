@@ -34,7 +34,7 @@ class Parser(private val tokenSource: TokenSource) {
     private fun parseBlock(): BlockTree {
         val bodyOpen = tokenSource.expectSeparator(SeparatorType.BRACE_OPEN)
         val statements = mutableListOf<StatementTree>()
-        while (!(tokenSource.peek() is Separator && (tokenSource.peek() as Separator).type == SeparatorType.BRACE_CLOSE)) {
+        while ((tokenSource.peek() as? Separator)?.type != SeparatorType.BRACE_CLOSE) {
             statements.add(parseStatement())
         }
         val bodyClose = tokenSource.expectSeparator(SeparatorType.BRACE_CLOSE)
@@ -62,32 +62,21 @@ class Parser(private val tokenSource: TokenSource) {
         return DeclarationTree(TypeTree(BasicType.INT, type.span), name(ident), expr)
     }
 
-    private fun parseSimple(): StatementTree {
-        val lValue = parseLValue()
-        val assignmentOperator = parseAssignmentOperator()
-        val expression = parseExpression()
-        return AssignmentTree(lValue, assignmentOperator, expression)
-    }
+    private fun parseSimple(): StatementTree = AssignmentTree(
+        parseLValue(),
+        parseAssignmentOperator(),
+        parseExpression()
+    )
 
-    private fun parseAssignmentOperator(): Operator {
-        val peek = tokenSource.peek()
-        if (peek is Operator) {
-            return when (peek.type) {
-                OperatorType.ASSIGN,
-                OperatorType.ASSIGN_DIV,
-                OperatorType.ASSIGN_MINUS,
-                OperatorType.ASSIGN_MOD,
-                OperatorType.ASSIGN_MUL,
-                OperatorType.ASSIGN_PLUS -> {
-                    tokenSource.consume()
-                    peek
-                }
-
-                else -> throw ParseException("expected assignment but got ${peek.type}")
-            }
-        }
-        throw ParseException("expected assignment but got $peek")
-    }
+    private fun parseAssignmentOperator(): Operator =
+        tokenSource.expectAnyOperator(
+            OperatorType.ASSIGN,
+            OperatorType.ASSIGN_DIV,
+            OperatorType.ASSIGN_MINUS,
+            OperatorType.ASSIGN_MOD,
+            OperatorType.ASSIGN_MUL,
+            OperatorType.ASSIGN_PLUS
+        )
 
     private fun parseLValue(): LValueTree {
         if (tokenSource.peek().isSeparator(SeparatorType.PAREN_OPEN)) {
@@ -169,8 +158,6 @@ class Parser(private val tokenSource: TokenSource) {
     }
 
     companion object {
-        private fun name(ident: Identifier): NameTree {
-            return NameTree(Name.forIdentifier(ident), ident.span)
-        }
+        private fun name(ident: Identifier): NameTree = NameTree(Name.forIdentifier(ident), ident.span)
     }
 }

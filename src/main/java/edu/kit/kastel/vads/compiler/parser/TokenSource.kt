@@ -10,64 +10,49 @@ class TokenSource {
         this.tokens = generateSequence { lexer.nextToken() }.toList()
     }
 
-    internal constructor(tokens: List<Token>) {
-        this.tokens = tokens.toList()
-    }
+    fun peek(): Token = tokens.getOrNull(idx) ?: throw ParseException("reached end of file")
 
-    fun peek(): Token {
-        expectHasMore()
-        return tokens[idx]
-    }
+    fun consume(): Token = peek().also { idx++ }
 
-    fun expectKeyword(type: KeywordType): Keyword {
+    fun hasMore(): Boolean = idx < tokens.size
+
+    fun expectKeyword(type: KeywordType): Keyword =
+        expectAndConsume<Keyword>("keyword '${type.keyword}'") { it.type == type }
+
+    fun expectSeparator(type: SeparatorType): Separator =
+        expectAndConsume<Separator>("separator '${type.value}'") { it.type == type }
+
+    fun expectOperator(type: OperatorType): Operator =
+        expectAndConsume<Operator>("operator '${type.value}'") { it.type == type }
+
+    fun expectIdentifier(): Identifier =
+        expectAndConsume<Identifier>("identifier")
+
+    fun expectNumberLiteral(): NumberLiteral =
+        expectAndConsume<NumberLiteral>("number literal")
+
+    fun expectAnyOperator(vararg types: OperatorType): Operator =
+        expectAndConsume<Operator>(
+            "one of operators ${types.joinToString(", ") { "'${it.value}'" }}"
+        ) { it.type in types.toSet() }
+
+    private inline fun <reified T : Token> expectAndConsume(
+        expectedDescription: String,
+        predicate: ((T) -> Boolean) = { true }
+    ): T {
         val token = peek()
-        if (token !is Keyword || token.type != type) {
-            throw ParseException("expected keyword '$type' but got $token")
+        if (token !is T) {
+            throw ParseException(
+                "expected $expectedDescription (type ${T::class.simpleName}) " +
+                        "but got ${token::class.simpleName} ($token)"
+            )
         }
-        idx++
-        return token
-    }
-
-    fun expectSeparator(type: SeparatorType): Separator {
-        val token = peek()
-        if (token !is Separator || token.type != type) {
-            throw ParseException("expected separator '$type' but got $token")
+        if (!predicate(token)) {
+            throw ParseException(
+                "expected $expectedDescription but got $token (which did not satisfy the condition)"
+            )
         }
-        idx++
+        consume()
         return token
-    }
-
-    fun expectOperator(type: OperatorType): Operator {
-        val token = peek()
-        if (token !is Operator || token.type != type) {
-            throw ParseException("expected operator '$type' but got $token")
-        }
-        idx++
-        return token
-    }
-
-    fun expectIdentifier(): Identifier {
-        val token = peek()
-        if (token !is Identifier) {
-            throw ParseException("expected identifier but got $token")
-        }
-        idx++
-        return token
-    }
-
-    fun consume(): Token {
-        val token = peek()
-        idx++
-        return token
-    }
-
-    fun hasMore(): Boolean {
-        return idx < tokens.size
-    }
-
-    private fun expectHasMore() {
-        if (idx >= tokens.size) {
-            throw ParseException("reached end of file")
-        }
     }
 }

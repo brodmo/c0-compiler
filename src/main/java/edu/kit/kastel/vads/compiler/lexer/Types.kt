@@ -28,7 +28,7 @@ enum class KeywordType(val keyword: String) {
     override fun toString(): String = keyword
 }
 
-enum class OperatorType(private val value: String) {
+enum class OperatorType(val value: String) {
     MINUS("-"), ASSIGN_MINUS("-="),
     PLUS("+"), ASSIGN_PLUS("+="),
     MUL("*"), ASSIGN_MUL("*="),
@@ -40,7 +40,7 @@ enum class OperatorType(private val value: String) {
     override fun toString(): String = this.value
 }
 
-enum class SeparatorType(private val value: String) {
+enum class SeparatorType(val value: String) {
     PAREN_OPEN("("),
     PAREN_CLOSE(")"),
     BRACE_OPEN("{"),

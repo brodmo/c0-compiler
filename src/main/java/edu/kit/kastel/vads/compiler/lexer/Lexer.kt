@@ -135,7 +135,7 @@ class Lexer private constructor(private val source: String) {
         }
         val id = source.substring(pos, pos + off)
         // This is a naive solution. Using a better data structure (hashmap, trie) likely performs better.
-        for (value in KeywordType.values()) {
+        for (value in KeywordType.entries) {
             if (value.keyword == id) {
                 return Keyword(value, buildSpan(off))
             }
