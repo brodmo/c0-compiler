@@ -68,8 +68,6 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     fun newResultProj(node: Node): Node =
         ProjNode(currentBlock, node, ProjectionInfo.RESULT)
 
-    fun newPhi(): Phi = Phi(currentBlock)
-
     fun writeVariable(variable: Name, block: Block, value: Node) {
         currentDef.getOrPut(variable) { mutableMapOf() }[block] = value
     }
@@ -80,7 +78,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     private fun readVariableRecursive(variable: Name, block: Block): Node {
         val value = when {
             block !in sealedBlocks -> {
-                newPhi().also {
+                Phi(block).also {
                     incompletePhis.getOrPut(block) { mutableMapOf() }[variable] = it
                 }
             }
@@ -90,7 +88,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
             }
 
             else -> {
-                newPhi().let {
+                Phi(block).let {
                     writeVariable(variable, block, it)
                     addPhiOperands(variable, it)
                 }
@@ -104,7 +102,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     private fun readSideEffectRecursive(block: Block): Node {
         val value = when {
             block !in sealedBlocks -> {
-                newPhi().also {
+                Phi(block).also {
                     val old = incompleteSideEffectPhis.put(block, it)
                     assert(old == null) { "double readSideEffectRecursive for $block" }
                 }
@@ -115,7 +113,7 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
             }
 
             else -> {
-                newPhi().let {
+                Phi(block).let {
                     writeSideEffect(block, it)
                     addPhiOperands(it)
                 }
@@ -144,6 +142,9 @@ internal class GraphConstructor(private val optimizer: Optimizer, name: String) 
     fun sealBlock(block: Block) {
         incompletePhis[block]?.forEach { (key, value) ->
             addPhiOperands(key, value)
+        }
+        incompleteSideEffectPhis[block]?.let { phi ->
+            addPhiOperands(phi)
         }
         sealedBlocks.add(block)
     }
