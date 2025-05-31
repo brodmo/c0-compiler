@@ -13,16 +13,16 @@ internal class ReturnAnalysis : NoOpVisitor<ReturnState> {
         var returns: Boolean = false
     }
 
-    override fun visit(returnTree: ReturnTree, data: ReturnState): Unit {
-        data.returns = true
-        return super.visit(returnTree, data)
+    override fun visit(returnTree: ReturnTree, context: ReturnState): Unit {
+        context.returns = true
+        return super.visit(returnTree, context)
     }
 
-    override fun visit(functionTree: FunctionTree, data: ReturnState): Unit {
-        if (!data.returns) {
+    override fun visit(functionTree: FunctionTree, context: ReturnState): Unit {
+        if (!context.returns) {
             throw SemanticException("function " + functionTree.name + " does not return")
         }
-        data.returns = false
-        return super.visit(functionTree, data)
+        context.returns = false
+        return super.visit(functionTree, context)
     }
 }

@@ -15,11 +15,11 @@ import java.util.*
  */
 class VariableStatusAnalysis : NoOpVisitor<Namespace<VariableStatusAnalysis.VariableStatus>> {
 
-    override fun visit(assignmentTree: AssignmentTree, data: Namespace<VariableStatus>): Unit {
+    override fun visit(assignmentTree: AssignmentTree, context: Namespace<VariableStatus>): Unit {
         when (val lValue = assignmentTree.lValue) {
             is LValueIdentTree -> {
                 val name = lValue.name
-                val status = data.get(name)
+                val status = context.get(name)
                 when (assignmentTree.operator.type) {
                     Operator.OperatorType.ASSIGN -> {
                         checkDeclared(name, status)
@@ -31,28 +31,28 @@ class VariableStatusAnalysis : NoOpVisitor<Namespace<VariableStatusAnalysis.Vari
                 }
                 if (status != VariableStatus.INITIALIZED) {
                     // only update when needed, reassignment is totally fine
-                    updateStatus(data, VariableStatus.INITIALIZED, name)
+                    updateStatus(context, VariableStatus.INITIALIZED, name)
                 }
             }
         }
-        return super.visit(assignmentTree, data)
+        return super.visit(assignmentTree, context)
     }
 
-    override fun visit(declarationTree: DeclarationTree, data: Namespace<VariableStatus>): Unit {
-        checkUndeclared(declarationTree.name, data.get(declarationTree.name))
+    override fun visit(declarationTree: DeclarationTree, context: Namespace<VariableStatus>): Unit {
+        checkUndeclared(declarationTree.name, context.get(declarationTree.name))
         val status = if (declarationTree.initializer == null) {
             VariableStatus.DECLARED
         } else {
             VariableStatus.INITIALIZED
         }
-        updateStatus(data, status, declarationTree.name)
-        return super.visit(declarationTree, data)
+        updateStatus(context, status, declarationTree.name)
+        return super.visit(declarationTree, context)
     }
 
-    override fun visit(identExpressionTree: IdentExpressionTree, data: Namespace<VariableStatus>): Unit {
-        val status = data.get(identExpressionTree.name)
+    override fun visit(identExpressionTree: IdentExpressionTree, context: Namespace<VariableStatus>): Unit {
+        val status = context.get(identExpressionTree.name)
         checkInitialized(identExpressionTree.name, status)
-        return super.visit(identExpressionTree, data)
+        return super.visit(identExpressionTree, context)
     }
 
     enum class VariableStatus {
@@ -83,8 +83,8 @@ class VariableStatusAnalysis : NoOpVisitor<Namespace<VariableStatusAnalysis.Vari
             }
         }
 
-        private fun updateStatus(data: Namespace<VariableStatus>, status: VariableStatus, name: NameTree) {
-            data.put(name, status) { existing, replacement ->
+        private fun updateStatus(context: Namespace<VariableStatus>, status: VariableStatus, name: NameTree) {
+            context.put(name, status) { existing, replacement ->
                 if (existing.ordinal >= replacement.ordinal) {
                     throw SemanticException("variable is already $existing. Cannot be $replacement here.")
                 }
