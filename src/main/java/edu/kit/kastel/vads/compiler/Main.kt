@@ -37,7 +37,7 @@ val PREAMBLE = """
 
 val ON_ARM = System.getProperty("os.arch") in listOf("arm64", "aarch64")
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) { // test
     val (source, executable) = parseArgs(args)
     val program = parseSourceFile(source)
     analyzeSemantics(program)
