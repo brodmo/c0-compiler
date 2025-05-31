@@ -2,102 +2,75 @@ package edu.kit.kastel.vads.compiler.parser.visitor
 
 import edu.kit.kastel.vads.compiler.parser.ast.*
 
-/** A visitor that traverses a tree in postorder
- * @param <T> a type for additional context
- * @param <R> a type for a return type
-</R></T> */
-class RecursivePostorderVisitor<T, R>(private val visitor: Visitor<T, R>) : Visitor<T, R> {
-    override fun visit(assignmentTree: AssignmentTree, context: T): R {
-        var r = assignmentTree.lValue.accept<T, R>(this, context)
-        r = assignmentTree.expression.accept<T, R>(this, accumulate(context, r))
-        r = this.visitor.visit(assignmentTree, accumulate(context, r))
-        return r
-    }
+/**
+ * A visitor that traverses a tree in postorder
+ * @param T a type for additional context
+ * @param R a type for a return type
+ */
+open class RecursivePostorderVisitor<T, R>(private val visitor: Visitor<T, R>) : Visitor<T, R> {
 
-    override fun visit(binaryOperationTree: BinaryOperationTree, context: T): R {
-        var r = binaryOperationTree.lhs.accept<T, R>(this, context)
-        r = binaryOperationTree.rhs.accept<T, R>(this, accumulate(context, r))
-        r = this.visitor.visit(binaryOperationTree, accumulate(context, r))
-        return r
-    }
+    override fun visit(assignmentTree: AssignmentTree, context: T): R =
+        visitChildren(assignmentTree, context, assignmentTree.lValue, assignmentTree.expression)
 
-    override fun visit(blockTree: BlockTree, context: T): R {
-        var r: R
-        var d = context
-        for (statement in blockTree.statements) {
-            r = statement.accept<T, R>(this, d)
-            d = accumulate(d, r)
+    override fun visit(binaryOperationTree: BinaryOperationTree, context: T): R =
+        visitChildren(binaryOperationTree, context, binaryOperationTree.lhs, binaryOperationTree.rhs)
+
+    override fun visit(blockTree: BlockTree, context: T): R =
+        visitChildren(blockTree, context, blockTree.statements)
+
+    override fun visit(declarationTree: DeclarationTree, context: T): R =
+        visitChildren(
+            declarationTree, context, listOfNotNull(
+                declarationTree.type,
+                declarationTree.name,
+                declarationTree.initializer  // nullable
+            )
+        )
+
+    override fun visit(functionTree: FunctionTree, context: T): R =
+        visitChildren(functionTree, context, functionTree.returnType, functionTree.name, functionTree.body)
+
+    override fun visit(identExpressionTree: IdentExpressionTree, context: T): R =
+        visitChildren(identExpressionTree, context, identExpressionTree.name)
+
+    override fun visit(literalTree: LiteralTree, context: T): R =
+        visitChildren(literalTree, context)
+
+    override fun visit(lValueIdentTree: LValueIdentTree, context: T): R =
+        visitChildren(lValueIdentTree, context, lValueIdentTree.name)
+
+    override fun visit(nameTree: NameTree, context: T): R =
+        visitChildren(nameTree, context)
+
+    override fun visit(negateTree: NegateTree, context: T): R =
+        visitChildren(negateTree, context, negateTree.expression)
+
+    override fun visit(programTree: ProgramTree, context: T): R =
+        visitChildren(programTree, context, programTree.topLevelTrees)
+
+    override fun visit(returnTree: ReturnTree, context: T): R =
+        visitChildren(returnTree, context, returnTree.expression)
+
+    override fun visit(typeTree: TypeTree, context: T): R =
+        visitChildren(typeTree, context)
+
+    private fun <N : Tree> visitChildren(
+        node: N,
+        context: T,
+        vararg children: Tree
+    ): R = visitChildren(node, context, children.toList())
+
+    private fun <N : Tree> visitChildren(
+        node: N,
+        context: T,
+        children: List<Tree>
+    ): R {
+        val finalContext = children.fold(context) { acc, child ->
+            val result = child.accept(this, acc)
+            accumulate(acc, result)
         }
-        r = this.visitor.visit(blockTree, d)
-        return r
+        return node.accept(visitor, finalContext)
     }
 
-    override fun visit(declarationTree: DeclarationTree, context: T): R {
-        var r = declarationTree.type.accept<T, R>(this, context)
-        r = declarationTree.name.accept<T, R>(this, accumulate(context, r))
-        if (declarationTree.initializer != null) {
-            r = declarationTree.initializer.accept<T, R>(this, accumulate(context, r))
-        }
-        r = this.visitor.visit(declarationTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(functionTree: FunctionTree, context: T): R {
-        var r = functionTree.returnType.accept<T, R>(this, context)
-        r = functionTree.name.accept<T, R>(this, accumulate(context, r))
-        r = functionTree.body.accept<T, R>(this, accumulate(context, r))
-        r = this.visitor.visit(functionTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(identExpressionTree: IdentExpressionTree, context: T): R {
-        var r = identExpressionTree.name.accept<T, R>(this, context)
-        r = this.visitor.visit(identExpressionTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(literalTree: LiteralTree, context: T): R {
-        return this.visitor.visit(literalTree, context)
-    }
-
-    override fun visit(lValueIdentTree: LValueIdentTree, context: T): R {
-        var r = lValueIdentTree.name.accept<T, R>(this, context)
-        r = this.visitor.visit(lValueIdentTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(nameTree: NameTree, context: T): R {
-        return this.visitor.visit(nameTree, context)
-    }
-
-    override fun visit(negateTree: NegateTree, context: T): R {
-        var r = negateTree.expression.accept<T, R>(this, context)
-        r = this.visitor.visit(negateTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(programTree: ProgramTree, context: T): R {
-        var r: R
-        var d = context
-        for (tree in programTree.topLevelTrees) {
-            r = tree.accept<T, R>(this, d)
-            d = accumulate(context, r)
-        }
-        r = this.visitor.visit(programTree, d)
-        return r
-    }
-
-    override fun visit(returnTree: ReturnTree, context: T): R {
-        var r = returnTree.expression.accept<T, R>(this, context)
-        r = this.visitor.visit(returnTree, accumulate(context, r))
-        return r
-    }
-
-    override fun visit(typeTree: TypeTree, context: T): R {
-        return this.visitor.visit(typeTree, context)
-    }
-
-    protected fun accumulate(context: T, value: R): T {
-        return context
-    }
+    protected open fun accumulate(context: T, value: R): T = context
 }
